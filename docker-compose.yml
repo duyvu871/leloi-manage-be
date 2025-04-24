@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+    postgres:
+        image: postgres:14-alpine
+        restart: unless-stopped
+        env_file:
+            - .env
+        ports:
+            - '5555:5432'
+        environment:
+            TZ: Asia/Ho_Chi_Minh
+            POSTGRES_USER: ${DB_POSTGRES_USER}
+            POSTGRES_PASSWORD: ${DB_POSTGRES_PASSWORD}
+            POSTGRES_DB: ${DB_POSTGRES_DATABASE}
+            POSTGRES_HOST_AUTH_METHOD: trust
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        healthcheck:
+            test: [ 'CMD-SHELL', 'pg_isready -U postgres' ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    redis:
+        image: 'redis:alpine'
+        restart: unless-stopped
+        environment:
+            TZ: Asia/Ho_Chi_Minh
+        volumes:
+            - redis_data:/data
+        healthcheck:
+            test: [ 'CMD', 'redis-cli', 'ping' ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    minio:
+        build:
+            context: .
+            dockerfile: Dockerfile.minio
+        restart: unless-stopped
+        env_file:
+            - .env
+        ports:
+            - '${MINIO_PORT:-9000}:9000'
+            - '${MINIO_CONSOLE_PORT:-9001}:9001'
+        environment:
+            TZ: Asia/Ho_Chi_Minh
+            MINIO_PORT: ${MINIO_PORT:-9000}
+            MINIO_CONSOLE_PORT: ${MINIO_CONSOLE_PORT:-9001}
+            MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+            MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+            MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+            MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+        volumes:
+            - minio_data:/data
+        command: server /data --console-address ":9001"
+        healthcheck:
+            test: ["CMD", "mc", "ready", "local"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    server:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        restart: unless-stopped
+        ports:
+            - '${SERVER_PORT}:${SERVER_PORT}'
+        cap_add:
+            - SYS_TIME
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            minio:
+                condition: service_healthy
+        env_file:
+            - .env
+        environment:
+            TZ: Asia/Ho_Chi_Minh
+        volumes:
+            - ./logs:/usr/src/app/logs
+            - ./startup.sh:/usr/src/app/startup.sh
+
+volumes:
+    postgres_data:
+    redis_data:
+    minio_data:
+# To rebuild a specific service:
+# docker-compose up -d --no-deps --build --no-cache <service_name>
