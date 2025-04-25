@@ -20,61 +20,61 @@ model User {
     isActive     Boolean  @default(true) @map("is_active")
     createdAt    DateTime @default(now()) @map("created_at")
     updatedAt    DateTime @updatedAt @map("updated_at")
-    
+
     // Thông tin đăng ký cơ bản
-    fullName     String   @map("full_name") @db.VarChar(100)
-    phone        String?  @db.VarChar(15)
-    address      String?  @db.VarChar(255)
-    
+    fullName String  @map("full_name") @db.VarChar(100)
+    phone    String? @db.VarChar(15)
+    address  String? @db.VarChar(255)
+
     // Quan hệ với học sinh (cha, mẹ, người giám hộ)
-    relationship String?  @db.VarChar(20) // father, mother, guardian
-    
+    relationship String? @db.VarChar(20) // father, mother, guardian
+
     // Đã đồng ý với điều khoản dịch vụ
     termsAccepted Boolean @default(false) @map("terms_accepted")
-    
+
     // Relations
-    userRoles     UserRole[]      // Quản lý phân quyền người dùng
-    refreshTokens RefreshToken[]  // Token làm mới phiên đăng nhập
-    userProfile   UserProfile?    // Thông tin cá nhân chi tiết
-    students      Student[]       // Danh sách học sinh của phụ huynh
-    manager       Manager?        // Vai trò quản lý
-    notifications Notification[]  // Thông báo của người dùng
-    parentInfo    ParentInfo?     // Thông tin chi tiết phụ huynh
+    userRoles     UserRole[] // Quản lý phân quyền người dùng
+    refreshTokens RefreshToken[] // Token làm mới phiên đăng nhập
+    userProfile   UserProfile? // Thông tin cá nhân chi tiết
+    students      Student[] // Danh sách học sinh của phụ huynh
+    manager       Manager? // Vai trò quản lý
+    notifications Notification[] // Thông báo của người dùng
+    parentInfo    ParentInfo? // Thông tin chi tiết phụ huynh
 
     @@map("users")
 }
 
 // Thông tin chi tiết của phụ huynh/người giám hộ
 model ParentInfo {
-    id          Int      @id @default(autoincrement())
-    userId      Int      @unique @map("user_id")
-    createdAt   DateTime @default(now()) @map("created_at")
-    updatedAt   DateTime @updatedAt @map("updated_at")
+    id        Int      @id @default(autoincrement())
+    userId    Int      @unique @map("user_id")
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
 
     // Thông tin cha
-    fatherName          String?  @map("father_name") @db.VarChar(100)
-    fatherBirthYear     Int?     @map("father_birth_year")
-    fatherPhone         String?  @map("father_phone") @db.VarChar(15)
-    fatherIdCard        String?  @map("father_id_card") @db.VarChar(20)
-    fatherOccupation    String?  @map("father_occupation") @db.VarChar(100)
-    fatherWorkplace     String?  @map("father_workplace") @db.VarChar(255)
-    
+    fatherName       String? @map("father_name") @db.VarChar(100)
+    fatherBirthYear  Int?    @map("father_birth_year")
+    fatherPhone      String? @map("father_phone") @db.VarChar(15)
+    fatherIdCard     String? @map("father_id_card") @db.VarChar(20)
+    fatherOccupation String? @map("father_occupation") @db.VarChar(100)
+    fatherWorkplace  String? @map("father_workplace") @db.VarChar(255)
+
     // Thông tin mẹ
-    motherName          String?  @map("mother_name") @db.VarChar(100)
-    motherBirthYear     Int?     @map("mother_birth_year")
-    motherPhone         String?  @map("mother_phone") @db.VarChar(15)
-    motherIdCard        String?  @map("mother_id_card") @db.VarChar(20)
-    motherOccupation    String?  @map("mother_occupation") @db.VarChar(100)
-    motherWorkplace     String?  @map("mother_workplace") @db.VarChar(255)
-    
+    motherName       String? @map("mother_name") @db.VarChar(100)
+    motherBirthYear  Int?    @map("mother_birth_year")
+    motherPhone      String? @map("mother_phone") @db.VarChar(15)
+    motherIdCard     String? @map("mother_id_card") @db.VarChar(20)
+    motherOccupation String? @map("mother_occupation") @db.VarChar(100)
+    motherWorkplace  String? @map("mother_workplace") @db.VarChar(255)
+
     // Thông tin người giám hộ (nếu không phải cha/mẹ)
-    guardianName          String?  @map("guardian_name") @db.VarChar(100)
-    guardianBirthYear     Int?     @map("guardian_birth_year")
-    guardianPhone         String?  @map("guardian_phone") @db.VarChar(15)
-    guardianIdCard        String?  @map("guardian_id_card") @db.VarChar(20)
-    guardianOccupation    String?  @map("guardian_occupation") @db.VarChar(100)
-    guardianWorkplace     String?  @map("guardian_workplace") @db.VarChar(255)
-    guardianRelationship  String?  @map("guardian_relationship") @db.VarChar(50)
+    guardianName         String? @map("guardian_name") @db.VarChar(100)
+    guardianBirthYear    Int?    @map("guardian_birth_year")
+    guardianPhone        String? @map("guardian_phone") @db.VarChar(15)
+    guardianIdCard       String? @map("guardian_id_card") @db.VarChar(20)
+    guardianOccupation   String? @map("guardian_occupation") @db.VarChar(100)
+    guardianWorkplace    String? @map("guardian_workplace") @db.VarChar(255)
+    guardianRelationship String? @map("guardian_relationship") @db.VarChar(50)
 
     // Relations
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -159,43 +159,43 @@ model Manager {
 // Thông tin học sinh
 // Quản lý thông tin cá nhân và học tập của học sinh
 model Student {
-    id                   Int      @id @default(autoincrement())
-    userId               Int      @map("user_id") // Phụ huynh/người giám hộ
-    fullName             String   @map("full_name") @db.VarChar(100)
-    dateOfBirth          DateTime @map("date_of_birth")
-    gender               String   @db.VarChar(10)
-    
+    id          Int      @id @default(autoincrement())
+    userId      Int      @map("user_id") // Phụ huynh/người giám hộ
+    fullName    String   @map("full_name") @db.VarChar(100)
+    dateOfBirth DateTime @map("date_of_birth")
+    gender      String   @db.VarChar(10)
+
     // Thêm các trường mới theo form đăng ký
-    educationDepartment  String   @map("education_department") @db.VarChar(255)
-    primarySchool        String   @map("primary_school") @db.VarChar(255)
-    grade                String   @db.VarChar(50)
-    placeOfBirth         String   @map("place_of_birth") @db.VarChar(255)
-    ethnicity            String   @db.VarChar(50)
-    
+    educationDepartment String @map("education_department") @db.VarChar(255)
+    primarySchool       String @map("primary_school") @db.VarChar(255)
+    grade               String @db.VarChar(50)
+    placeOfBirth        String @map("place_of_birth") @db.VarChar(255)
+    ethnicity           String @db.VarChar(50)
+
     // Địa chỉ
-    permanentAddress     String   @map("permanent_address") @db.VarChar(255)
-    temporaryAddress     String?  @map("temporary_address") @db.VarChar(255)
-    currentAddress       String   @map("current_address") @db.VarChar(255)
-    
+    permanentAddress String  @map("permanent_address") @db.VarChar(255)
+    temporaryAddress String? @map("temporary_address") @db.VarChar(255)
+    currentAddress   String  @map("current_address") @db.VarChar(255)
+
     // Thông tin thi
-    examNumber           String?  @unique @map("exam_number") @db.VarChar(20)
-    examRoom             String?  @map("exam_room") @db.VarChar(20)
-    
+    examNumber String? @unique @map("exam_number") @db.VarChar(20)
+    examRoom   String? @map("exam_room") @db.VarChar(20)
+
     // Thông tin mã hồ sơ
-    studentCode          String?  @map("student_code") @db.VarChar(50)
-    identificationNumber String?  @map("identification_number") @db.VarChar(50)
-    
-    createdAt    DateTime @default(now()) @map("created_at")
-    updatedAt    DateTime @updatedAt @map("updated_at")
+    studentCode          String? @map("student_code") @db.VarChar(50)
+    identificationNumber String? @map("identification_number") @db.VarChar(50)
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
 
     // Relations
-    user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-    application Application? // Hồ sơ đăng ký
-    grades      Grade[]      // Điểm các môn thi
-    bonusPoints BonusPoint[] // Điểm thưởng/ưu tiên
-    Commitment Commitment[]
+    user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+    application   Application? // Hồ sơ đăng ký
+    grades        Grade[] // Điểm các môn thi
+    bonusPoints   BonusPoint[] // Điểm thưởng/ưu tiên
+    Commitment    Commitment[]
     PriorityPoint PriorityPoint[]
-    
+
     @@map("students")
 }
 
@@ -204,8 +204,8 @@ model BonusPoint {
     id          Int      @id @default(autoincrement())
     studentId   Int      @map("student_id")
     category    String   @db.VarChar(100) // Loại cuộc thi: creativityContest, upuLetterContest, sportsCompetition, englishOlympiad
-    level       String   @db.VarChar(50)  // cityLevel, nationalLevel
-    achievement String   @db.VarChar(50)  // first, second, third
+    level       String   @db.VarChar(50) // cityLevel, nationalLevel
+    achievement String   @db.VarChar(50) // first, second, third
     points      Float    @default(0.0)
     createdAt   DateTime @default(now()) @map("created_at")
     updatedAt   DateTime @updatedAt @map("updated_at")
@@ -218,12 +218,12 @@ model BonusPoint {
 
 // Điểm ưu tiên
 model PriorityPoint {
-    id          Int      @id @default(autoincrement())
-    studentId   Int      @unique @map("student_id")
-    type        String   @db.VarChar(50) // type1, type2, type3
-    points      Float    @default(0.0)
-    createdAt   DateTime @default(now()) @map("created_at")
-    updatedAt   DateTime @updatedAt @map("updated_at")
+    id        Int      @id @default(autoincrement())
+    studentId Int      @unique @map("student_id")
+    type      String   @db.VarChar(50) // type1, type2, type3
+    points    Float    @default(0.0)
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
 
     // Relations
     student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
@@ -233,14 +233,14 @@ model PriorityPoint {
 
 // Cam kết của phụ huynh/người giám hộ
 model Commitment {
-    id              Int      @id @default(autoincrement())
-    studentId       Int      @unique @map("student_id")
-    relationship    String   @db.VarChar(100)
-    signatureDate   DateTime @map("signature_date")
-    guardianName    String   @map("guardian_name") @db.VarChar(100)
-    applicantName   String   @map("applicant_name") @db.VarChar(100)
-    createdAt       DateTime @default(now()) @map("created_at")
-    updatedAt       DateTime @updatedAt @map("updated_at")
+    id            Int      @id @default(autoincrement())
+    studentId     Int      @unique @map("student_id")
+    relationship  String   @db.VarChar(100)
+    signatureDate DateTime @map("signature_date")
+    guardianName  String   @map("guardian_name") @db.VarChar(100)
+    applicantName String   @map("applicant_name") @db.VarChar(100)
+    createdAt     DateTime @default(now()) @map("created_at")
+    updatedAt     DateTime @updatedAt @map("updated_at")
 
     // Relations
     student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
@@ -251,40 +251,54 @@ model Commitment {
 // Hồ sơ đăng ký của học sinh
 // Quản lý trạng thái và thông tin đăng ký
 model Application {
-    id               Int       @id @default(autoincrement())
-    studentId        Int       @unique @map("student_id") 
-    status           String    @db.VarChar(50) // pending, approved, rejected
-    isEligible       Boolean   @default(false) @map("is_eligible") // Đủ điều kiện
-    rejectionReason  String?   @map("rejection_reason") @db.Text // Lý do từ chối
-    verificationDate DateTime? @map("verification_date") // Ngày xác minh
-    type             String    @db.VarChar(50) @default("transcript") // transcript, certificate
-    createdAt        DateTime  @default(now()) @map("created_at")
-    updatedAt        DateTime  @updatedAt @map("updated_at")
+    id        Int      @id @default(autoincrement())
+    studentId Int      @unique @map("student_id")
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
 
     // Relations
-    student      Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
-    documents    Document[]    // Tài liệu đính kèm
-    scheduleSlot ScheduleSlot? // Lịch thi được phân công
+    student             Student               @relation(fields: [studentId], references: [id], onDelete: Cascade)
+    // documents    Document[]    // Tài liệu đính kèm
+    scheduleSlot        ScheduleSlot? // Lịch thi được phân công
+    ApplicationDocuments ApplicationDocument[]
 
     @@map("applications")
 }
 
-// Quản lý tài liệu đính kèm trong hồ sơ
-model Document {
-    id            Int      @id @default(autoincrement())
-    applicationId Int      @map("application_id")
-    name          String   @db.VarChar(255)
-    description   String?  @db.Text
-    url           String   @db.VarChar(255)
-    type          String   @db.VarChar(50)
-    filePath      String   @map("file_path") @db.VarChar(255)
-    fileSize      Int      @map("file_size")
-    mimeType      String   @map("mime_type") @db.VarChar(100)
-    uploadedAt    DateTime @default(now()) @map("uploaded_at")
+model ApplicationDocument {
+    id               Int       @id @default(autoincrement())
+    applicationId    Int       @map("application_id")
+    documentId       Int       @map("document_id")
+    status           String    @db.VarChar(50) // pending, approved, rejected
+    isEligible       Boolean   @default(false) @map("is_eligible") // Đủ điều kiện
+    rejectionReason  String?   @map("rejection_reason") @db.Text // Lý do từ chối
+    verificationDate DateTime? @map("verification_date") // Ngày xác minh
+    type             String    @default("transcript") @db.VarChar(50) // transcript, certificate
+    createdAt        DateTime  @default(now()) @map("created_at")
+    updatedAt        DateTime  @updatedAt @map("updated_at")
 
     // Relations
-    application   Application    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-    extractedData ExtractedData? // Dữ liệu được trích xuất từ tài liệu
+    application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+    document    Document?    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+    @@map("application_documents")
+}
+
+// Quản lý tài liệu đính kèm trong hồ sơ
+model Document {
+    id          Int      @id @default(autoincrement())
+    name        String   @db.VarChar(255)
+    description String?  @db.Text
+    url         String   @db.VarChar(255)
+    type        String   @db.VarChar(50) // Updated type description
+    filePath    String   @map("file_path") @db.VarChar(255)
+    fileSize    Int      @map("file_size")
+    mimeType    String   @map("mime_type") @db.VarChar(100)
+    uploadedAt  DateTime @default(now()) @map("uploaded_at")
+
+    // // Relations
+    ApplicationDocument ApplicationDocument[]
+    extractedData       ExtractedData? // Dữ liệu được trích xuất từ tài liệu
 
     @@map("documents")
 }
@@ -352,7 +366,7 @@ model Subject {
     updatedAt   DateTime @updatedAt @map("updated_at")
 
     // Relations
-    grades   Grade[]             // Điểm thi của học sinh
+    grades   Grade[] // Điểm thi của học sinh
     criteria AdmissionCriteria[] // Tiêu chí tuyển sinh
 
     @@map("subjects")

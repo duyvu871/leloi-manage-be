@@ -17,8 +17,8 @@
     "author": "BUIANDU",
     "license": "ISC",
     "scripts": {
-        "dev": "set NODE_ENV=development&&set PORT=4001&&tsup --watch --onSuccess \"node --inspect --max-old-space-size=8194 dist/server.js\"",
-        "start": "node dist/server.js",
+        "dev": "set NODE_ENV=development&&set PORT=8080&&tsup --watch --onSuccess \"npm run start\"",
+        "start": "npx concurrently \"node dist/server.js\" \"node dist/workers/process-document.js\"",
         "build": "tsup && tsc-alias",
         "test": "jest",
         "postinstall": "prisma generate --schema=./prisma/schema.prisma",
@@ -35,6 +35,7 @@
         "bullmq": "^5.49.2",
         "clamscan": "^2.4.0",
         "compression": "^1.8.0",
+        "concurrently": "^9.1.2",
         "cookie-parser": "^1.4.7",
         "cors": "^2.8.5",
         "dayjs": "^1.11.13",

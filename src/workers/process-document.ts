@@ -99,3 +99,16 @@ export default class ProcessDocumentWorker {
         }
     }
 }
+
+
+if (require.main === module) {
+    const worker = new ProcessDocumentWorker();
+    worker.start();
+    console.log('Document processing worker started');
+    
+    // Gracefully handle process termination
+    process.on('SIGINT', async () => {
+        await worker.stop();
+        process.exit(0);
+    });
+}

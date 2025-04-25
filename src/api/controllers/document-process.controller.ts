@@ -32,7 +32,10 @@ export class DocumentProcessController {
             if (!type) throw new BadRequest('Invalid_document_type', 'Document type is required', 'Document type is required');
             if (!applicationId) throw new BadRequest('Invalid_application_id', 'Application ID is required', 'Application ID is required');
 
-            const result = await this.documentProcessService.uploadAndProcessDocument(file, type, applicationId, userId, metadata);
+            console.log(`File: ${file?.originalname}, Type: ${type}, Application ID: ${applicationId}, User ID: ${userId}`);
+            console.log('File:', file);
+            
+            const result = await this.documentProcessService.uploadAndProcessDocument(file, type, parseInt(applicationId, 10), userId, metadata);
             const response = new Success(result).toJson;
             return res.status(201).json(response);
         }

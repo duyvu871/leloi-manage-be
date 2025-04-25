@@ -4,7 +4,7 @@ import { join } from 'path';
 import glob from 'glob';
 
 export default defineConfig((options: Options) => ({
-	entry: ["./src/server.ts"],
+	entry: ["./src/server.ts", "./src/workers/**/*.ts", "./src/workers/**/*.js"],
 	// entry: ["./src/**/*.{js,jsx,ts,tsx}"],
 	// Mark problematic packages as external
 	external: [

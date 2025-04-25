@@ -56,7 +56,7 @@ export default class AssetFsService {
      * @throws {BadRequest} When file is missing or invalid
      * @throws {InternalServerError} When upload fails
      */
-    public async uploadFile(file: Express.Multer.File, userId: string | number, metadata?: Record<string, unknown>): Promise<AssetUploadResponse['data']> {
+    public async uploadFile(file: Express.Multer.File, userId: string | number, metadata?: Record<string, unknown>): Promise<AssetUploadResponse['data'] & {filePath: string}> {
         if (!file) {
             throw new BadRequest('FILE_REQUIRED', 'File is required', 'No file was provided for upload');
         }
@@ -103,6 +103,7 @@ export default class AssetFsService {
                 fileName: file.originalname,
                 fileSize: file.size,
                 mimetype: file.mimetype,
+                filePath: filePath,
                 url: fileUrl,
                 metadata
             };

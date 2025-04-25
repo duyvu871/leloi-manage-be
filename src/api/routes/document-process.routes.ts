@@ -91,7 +91,7 @@ documentProcessRouter.post(
 		{
 			fileTypes: [FileType.PDF],
 			maxFileSize: 1024 * 1024 * 50, // 10MB file size limit
-		}).single('image'),
+		}).single('file'),
     authenticate,
     documentProcessController.uploadDocument
 );

@@ -87,6 +87,7 @@ services:
         volumes:
             - ./logs:/usr/src/app/logs
             - ./startup.sh:/usr/src/app/startup.sh
+            - ./storage:/usr/src/app/storage
 
 volumes:
     postgres_data:

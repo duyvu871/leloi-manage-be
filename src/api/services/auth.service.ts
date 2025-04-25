@@ -276,10 +276,16 @@ export default class AuthService {
             address: user.address || '',
             relationship: user.relationship as 'father' | 'mother' | 'guardian' | null,
             role: role as 'user' | 'admin',
-            students: user.students || [],
+            students: (user.students || []).map(student => ({
+                ...student,
+                application: student.application ? {
+                    ...student.application,
+                    ApplicationDocuments: []
+                } : null
+            })),
             parentInfo: user.parentInfo
                 ? {
-                   ...user.parentInfo,
+                    ...user.parentInfo,
                 }
                 : null,
         };

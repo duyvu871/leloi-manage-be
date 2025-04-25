@@ -80,18 +80,20 @@ const validateFileExtension = (file: Express.Multer.File, allowedExtensions?: st
  * @returns {StorageEngine} Configured Multer storage engine
  */
 const createStorage = (options: UploadOptions): StorageEngine => {
-    return options.storage || multer.diskStorage({
-        destination: (_req: Request, _file: Express.Multer.File, cb) => {
-            const uploadDir = options.destination || DEFAULT_UPLOAD_DIR;
-            cb(null, uploadDir);
-        },
-        filename: (req: Request, file: Express.Multer.File, cb) => {
-            const filename = options.filename ?
-                options.filename(req, file) :
-                generateFilename(file);
-            cb(null, filename);
+    return options.storage || multer.diskStorage(
+        {
+            destination: (_req: Request, _file: Express.Multer.File, cb) => {
+                const uploadDir = options.destination || DEFAULT_UPLOAD_DIR;
+                cb(null, uploadDir);
+            },
+            filename: (req: Request, file: Express.Multer.File, cb) => {
+                const filename = options.filename ?
+                    options.filename(req, file) :
+                    generateFilename(file);
+                cb(null, filename);
+            }
         }
-    });
+    );
 };
 
 /**
@@ -190,7 +192,7 @@ export const uploadMiddleware = (options: UploadOptions = {}) => {
     const maxFileSize = options.maxFileSize || Math.max(...Object.values(MAX_FILE_SIZES));
 
     return multer({
-        storage,
+        // storage,
         fileFilter,
         limits: {
             fileSize: maxFileSize,

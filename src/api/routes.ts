@@ -6,6 +6,7 @@ import pageRoutes from "routes/page.route";
 import assetUploadRouter from "routes/asset-upload.routes";
 import parentRouter from "routes/parent.routes";
 import documentProcessRouter from "routes/document-process.routes";
+import registrationRouter from "routes/registration.route";
 
 const apiRouter = Router();
 const pageRouter = Router();
@@ -14,8 +15,8 @@ apiRouter.use('/health', healthRoute);
 apiRouter.use('/auth', authRoute);
 apiRouter.use('/asset', assetUploadRouter);
 apiRouter.use('/parent', parentRouter);
-apiRouter.use('/registration', documentProcessRouter);
-
+apiRouter.use('/process', documentProcessRouter);
+apiRouter.use("/registration", registrationRouter);
 pageRouter.use("/notification", notificationRouter);
 
 // Add page routes directly to the page router

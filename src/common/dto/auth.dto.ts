@@ -71,10 +71,39 @@ export interface ParentInfoDto {
  */
 export interface ApplicationDto {
     id: number;
+    studentId: number;
+    createdAt: Date;
+    updatedAt: Date;
+    ApplicationDocuments: ApplicationDocumentDto[];
+}
+
+export interface ApplicationDocumentDto {
+    id: number;
+    createdAt: Date;
+    updatedAt: Date;
+    applicationId: number;
+    documentId: number;
+    type: string;
     status: string;
     isEligible: boolean;
     rejectionReason?: string | null;
     verificationDate?: Date | null;
+
+    document?: DocumentDto;
+}
+
+export interface DocumentDto {
+    id: number;
+    name: string;
+    description?: string | null;
+    url: string;
+    type: string;
+    filePath: string;
+    fileSize: number;
+    mimeType: string;
+    createdAt: Date;
+    updatedAt: Date;
+    ApplicationDocuments: ApplicationDocumentDto[];
 }
 
 export interface StudentInfoDto {

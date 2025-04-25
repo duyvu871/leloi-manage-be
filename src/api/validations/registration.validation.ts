@@ -111,3 +111,19 @@ export const registrationApiSchema = studentRegistrationSchema.transform((data) 
     dateOfBirth: data.studentInfo.dateOfBirth.toISOString().split('T')[0],
   }
 }));
+
+export const studentIdParam = z.object({
+  studentId: z.string().refine((val) => !isNaN(Number(val)), {
+    message: 'ID học sinh không hợp lệ', 
+    path: ['studentId'],
+  }),
+});
+
+export type ParentRegistrationData = z.infer<typeof parentRegistrationSchema>;
+export type StudentRegistrationData = z.infer<typeof studentRegistrationSchema>;
+
+export type ParentInfoData = z.infer<typeof parentInfoSchema>;
+export type CompleteRegistrationData = z.infer<typeof completeRegistrationSchema>;
+
+export type RegistrationApiData = z.infer<typeof registrationApiSchema>;
+export type StudentIdParam = z.infer<typeof studentIdParam>;

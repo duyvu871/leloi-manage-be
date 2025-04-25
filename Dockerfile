@@ -38,4 +38,4 @@ RUN mkdir -p dist/lib/binding/napi-v3 && \
 # Start the application
 RUN chmod +x ./startup.sh
 
-CMD ["sh", "-c", "ls -la /usr/src/app/dist && npx prisma db push --skip-generate && node dist/server.js"]
+CMD ["sh", "-c", "ls -la /usr/src/app/dist && npx prisma db push --skip-generate && npx concurrently \"node dist/server.js\" \"node dist/workers/process-document.js\""]
