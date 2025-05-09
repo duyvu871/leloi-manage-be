@@ -1,7 +1,7 @@
 import { UserRepository } from 'repository/user.repository';
 import { RoleRepository } from 'repository/role.repository';
 import { User, Role, ParentInfo } from '@prisma/client';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { UserRole } from 'common/enums/models/user';
 import { AuthServiceErrorMessage } from 'common/enums/auth-service-error.enum';
@@ -277,7 +277,18 @@ export default class AuthService {
             relationship: user.relationship as 'father' | 'mother' | 'guardian' | null,
             role: role as 'user' | 'admin',
             students: (user.students || []).map(student => ({
-                ...student,
+                id: student.id,
+                fullName: student.registration?.fullName || '',
+                dateOfBirth: student.registration?.dateOfBirth || new Date(),
+                gender: student.registration?.gender || '',
+                educationDepartment: student.registration?.educationDepartment || '',
+                studentCode: student.registration?.studentCode || '',
+                grade: student.registration?.grade || '',
+                primarySchool: student.registration?.primarySchool || '',
+                placeOfBirth: student.registration?.placeOfBirth || '',
+                ethnicity: student.registration?.ethnicity || '',
+                permanentAddress: student.registration?.permanentAddress || '',
+                currentAddress: student.registration?.currentAddress || '',
                 application: student.application ? {
                     ...student.application,
                     ApplicationDocuments: []

@@ -10,11 +10,22 @@ export interface AssetUploadResponse {
         fileId: string;
         fileName: string;
         fileSize: number;
+        storagePath: string;
         mimetype: string;
         url: string;
         metadata?: Record<string, unknown>;
     };
 }
+
+export interface AssetSaveData  {
+    fileId: string;
+    fileName: string;
+    fileSize: number;
+    storagePath: string;
+    mimetype: string;
+    url: string;
+    metadata?: Record<string, unknown>;
+};
 
 export type AssetMetadata = {
     original_name: string;

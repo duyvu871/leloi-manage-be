@@ -1,4 +1,16 @@
 export interface DraftFormData {
+
+  academicRecords: {
+    grades: {
+      grade: number
+      math: number
+      vietnamese: number
+      english?: number
+      science?: number
+      history?: number
+    }[]
+  };
+
   studentInfo: {
     fullName?: string;
     dateOfBirth?: Date;

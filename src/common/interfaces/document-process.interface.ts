@@ -1,3 +1,4 @@
+
 /**
  * Interface for document upload parameters
  */
@@ -26,20 +27,58 @@ export type VerifyExtractedDataParams = {
     extractedDataId: string;
 }
 
+
+export interface CertificateProcessResult {
+    name: string;
+    extracted_name: string;
+    level: string;
+    correct: boolean;
+}
+
+export interface TranscriptData {
+    ten: string;
+    monHoc: Array<{
+        mon: string;
+        muc: string;
+        diem: number | null;
+    }>;
+    phamChat?: Record<string, string>;
+    nangLuc?: Record<string, string>;
+}
+
+// Define interfaces for document processing
+export interface TranscriptProcessResult {
+    [grade: string]: {
+        Tên: string;
+        Điểm: Array<{
+            Môn: string;
+            Mức: string;
+            Điểm: number | string;
+        }>;
+        'Phẩm chất'?: {
+            [quality: string]: string;
+        };
+        'Năng lực'?: {
+            [ability: string]: string;
+        };
+    };
+}
+
 /**
  * Interface for document processing job
  */
-export interface DocumentProcessJob {
+export interface DocumentProcessJob<T> {
     id: string;
-    userId: string | number;
-    fileId: string;
+    userId: number;
+    fileId: number;
     fileName: string;
     fileUrl: string;
-    type: 'transcript' | 'certificate' | 'identity' | string;
-    applicationId: string;
+    path: string;
+    applicationDocumentId: number;
+    type: 'transcript' | 'certificate';
     status: 'pending' | 'processing' | 'completed' | 'failed';
-    result?: Record<string, unknown>;
+    result?: string;//Record<string, TranscriptData> | CertificateProcessResult;
     error?: string;
-    createdAt: Date;
+    createdAt: Date; 
     updatedAt: Date;
 }

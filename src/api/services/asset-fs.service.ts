@@ -2,7 +2,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { Readable } from 'stream';
 import { v4 as uuidv4 } from 'uuid';
-import { AssetMetadata, AssetUploadResponse, GetFileByIdResponse } from 'common/interfaces/asset-upload.interface';
+import { AssetMetadata, AssetSaveData, AssetUploadResponse, GetFileByIdResponse } from 'common/interfaces/asset-upload.interface';
 import logger from 'util/logger';
 import BadRequest from 'responses/client-errors/bad-request';
 import InternalServerError from 'responses/server-errors/internal-server-error';
@@ -56,7 +56,7 @@ export default class AssetFsService {
      * @throws {BadRequest} When file is missing or invalid
      * @throws {InternalServerError} When upload fails
      */
-    public async uploadFile(file: Express.Multer.File, userId: string | number, metadata?: Record<string, unknown>): Promise<AssetUploadResponse['data'] & {filePath: string}> {
+    public async uploadFile(file: Express.Multer.File, userId: string | number, metadata?: Record<string, unknown>): Promise<AssetSaveData & {filePath: string}> {
         if (!file) {
             throw new BadRequest('FILE_REQUIRED', 'File is required', 'No file was provided for upload');
         }
@@ -74,8 +74,8 @@ export default class AssetFsService {
             await fs.mkdir(userDir, { recursive: true });
             
             // Define file path
-            const filePath = path.join(userDir, fileId);
-            
+            const filePath = path.join(userDir, fileId + path.extname(file.originalname));
+            const relativePath = path.join(`/storage/assets/users/${userId}`, fileId + path.extname(file.originalname));
             // Write file to disk
             await fs.writeFile(filePath, file.buffer);
             
@@ -96,7 +96,7 @@ export default class AssetFsService {
             logger.info(`File uploaded successfully: ${fileId}`);
             
             // Generate URL for the file
-            const fileUrl = this.generateFileUrl(userId.toString(), fileId);
+            const fileUrl = this.generateFileUrl(userId.toString(), fileId + path.extname(file.originalname));
             
             return {
                 fileId,
@@ -104,6 +104,7 @@ export default class AssetFsService {
                 fileSize: file.size,
                 mimetype: file.mimetype,
                 filePath: filePath,
+                storagePath: relativePath,
                 url: fileUrl,
                 metadata
             };
@@ -128,8 +129,9 @@ export default class AssetFsService {
     private generateFileId(originalName: string): string {
         const timestamp = Date.now();
         const randomString = uuidv4().substring(0, 8);
-        const sanitizedName = originalName.replace(/[^a-zA-Z0-9]/g, '-');
-        return `${timestamp}-${randomString}-${sanitizedName}`;
+        // const sanitizedName = originalName.replace(/[^a-zA-Z0-9]/g, '-');
+        // return `${timestamp}-${randomString}-${sanitizedName}`;
+        return `${timestamp}-${randomString}`;
     }
 
     /**

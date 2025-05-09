@@ -1,13 +1,15 @@
 import { Request, Response } from 'express';
-import { 
-    GetDocumentByIdParams, 
-    GetApplicationDocumentsParams, 
-    VerifyExtractedDataParams 
-} from 'common/interfaces/document-process.interface';
-import DocumentProcessService from 'services/document-process.service';
 import AsyncMiddleware from 'util/async-handler';
 import Success from 'server/responses/success-response/success';
 import BadRequest from 'server/responses/client-errors/bad-request';
+import DocumentProcessService from 'services/document-process.service';
+import { 
+    DocumentUploadRequest, 
+    ApplicationIdParam, 
+    DocumentIdParam, 
+    ExtractedDataIdParam,
+    VerifyExtractedDataRequest 
+} from 'validations/document-process.validation';
 
 export class DocumentProcessController {
     private documentProcessService: DocumentProcessService;
@@ -22,22 +24,31 @@ export class DocumentProcessController {
      * @param res Express response object
      */
     uploadDocument = AsyncMiddleware.asyncHandler(
-        async (req: Request, res: Response) => {
-            const file = req.file as Express.Multer.File;
-            const { type, applicationId } = req.body;
-            const metadata = req.body.metadata ? JSON.parse(req.body.metadata) : undefined;
-            const userId = req?.userId;
-            
-            if (!userId) throw new BadRequest('Invalid_user_id', 'Invalid user ID', 'Invalid user ID');
-            if (!type) throw new BadRequest('Invalid_document_type', 'Document type is required', 'Document type is required');
-            if (!applicationId) throw new BadRequest('Invalid_application_id', 'Application ID is required', 'Application ID is required');
+        async (req: Request<{}, {}, DocumentUploadRequest>, res: Response) => {
+            try {
+                if (!req.file) {
+                    throw new BadRequest('INVALID_FILE', 'File is required', 'File is required');
+                }
 
-            console.log(`File: ${file?.originalname}, Type: ${type}, Application ID: ${applicationId}, User ID: ${userId}`);
-            console.log('File:', file);
-            
-            const result = await this.documentProcessService.uploadAndProcessDocument(file, type, parseInt(applicationId, 10), userId, metadata);
-            const response = new Success(result).toJson;
-            return res.status(201).json(response);
+                const userId = req?.userId;
+                if (!userId) {
+                    throw new BadRequest('INVALID_USER_ID', 'Invalid user ID', 'Invalid user ID');
+                }
+
+                const result = await this.documentProcessService.uploadAndProcessDocument(
+                    req.file,
+                    req.body.type,
+                    parseInt(req.body.applicationId, 10),
+                    userId,
+                    req.body.metadata
+                );
+
+                const response = new Success(result).toJson;
+                return res.status(201).json(response);
+            } catch (error) {
+                console.error('Error in uploadDocument:', error);
+                throw error;
+            }
         }
     );
 
@@ -47,15 +58,22 @@ export class DocumentProcessController {
      * @param res Express response object
      */
     getApplicationDocuments = AsyncMiddleware.asyncHandler(
-        async (req: Request<GetApplicationDocumentsParams>, res: Response) => {
-            const { applicationId } = req.params;
-            const userId = req?.userId;
-            
-            if (!userId) throw new BadRequest('Invalid_user_id', 'Invalid user ID', 'Invalid user ID');
+        async (req: Request<ApplicationIdParam>, res: Response) => {
+            try {
+                const { applicationId } = req.params;
+                const userId = req?.userId;
+                
+                if (!userId) {
+                    throw new BadRequest('INVALID_USER_ID', 'Invalid user ID', 'Invalid user ID');
+                }
 
-            const result = await this.documentProcessService.getApplicationDocuments(applicationId, userId);
-            const response = new Success(result).toJson;
-            return res.status(200).json(response);
+                const documents = await this.documentProcessService.getApplicationDocuments(applicationId, userId);
+                const response = new Success(documents).toJson;
+                return res.status(200).json(response);
+            } catch (error) {
+                console.error('Error in getApplicationDocuments:', error);
+                throw error;
+            }
         }
     );
 
@@ -65,15 +83,22 @@ export class DocumentProcessController {
      * @param res Express response object
      */
     getExtractedData = AsyncMiddleware.asyncHandler(
-        async (req: Request<GetDocumentByIdParams>, res: Response) => {
-            const { documentId } = req.params;
-            const userId = req?.userId;
-            
-            if (!userId) throw new BadRequest('Invalid_user_id', 'Invalid user ID', 'Invalid user ID');
+        async (req: Request<DocumentIdParam>, res: Response) => {
+            try {
+                const { documentId } = req.params;
+                const userId = req?.userId;
+                
+                if (!userId) {
+                    throw new BadRequest('INVALID_USER_ID', 'Invalid user ID', 'Invalid user ID');
+                }
 
-            const result = await this.documentProcessService.getExtractedData(documentId, userId);
-            const response = new Success(result).toJson;
-            return res.status(200).json(response);
+                const extractedData = await this.documentProcessService.getExtractedData(documentId, userId);
+                const response = new Success(extractedData).toJson;
+                return res.status(200).json(response);
+            } catch (error) {
+                console.error('Error in getExtractedData:', error);
+                throw error;
+            }
         }
     );
 
@@ -83,17 +108,29 @@ export class DocumentProcessController {
      * @param res Express response object
      */
     verifyExtractedData = AsyncMiddleware.asyncHandler(
-        async (req: Request<VerifyExtractedDataParams>, res: Response) => {
-            const { extractedDataId } = req.params;
-            const { isVerified } = req.body;
-            const userId = req?.userId;
-            
-            if (!userId) throw new BadRequest('Invalid_user_id', 'Invalid user ID', 'Invalid user ID');
-            if (isVerified === undefined) throw new BadRequest('Invalid_verification', 'Verification status is required', 'Verification status is required');
+        async (req: Request<ExtractedDataIdParam, {}, VerifyExtractedDataRequest>, res: Response) => {
+            try {
+                const { extractedDataId } = req.params;
+                const { isVerified, verificationNotes } = req.body;
+                const userId = req?.userId;
+                
+                if (!userId) {
+                    throw new BadRequest('INVALID_USER_ID', 'Invalid user ID', 'Invalid user ID');
+                }
 
-            const result = await this.documentProcessService.verifyExtractedData(extractedDataId, isVerified, userId);
-            const response = new Success(result).toJson;
-            return res.status(200).json(response);
+                const result = await this.documentProcessService.verifyExtractedData(
+                    extractedDataId,
+                    'transcript', // TODO: Get document type from database
+                    isVerified,
+                    userId
+                );
+                
+                const response = new Success(result).toJson;
+                return res.status(200).json(response);
+            } catch (error) {
+                console.error('Error in verifyExtractedData:', error);
+                throw error;
+            }
         }
     );
 }

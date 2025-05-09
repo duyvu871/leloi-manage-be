@@ -14,7 +14,7 @@ datasource db {
 // Bao gồm thông tin đăng nhập cơ bản và trạng thái tài khoản
 model User {
     id           Int      @id @default(autoincrement())
-    username     String   @unique @db.VarChar(50)
+    username     String   @db.VarChar(50)
     email        String   @unique @db.VarChar(100)
     passwordHash String   @map("password_hash") @db.VarChar(255)
     isActive     Boolean  @default(true) @map("is_active")
@@ -40,6 +40,7 @@ model User {
     manager       Manager? // Vai trò quản lý
     notifications Notification[] // Thông báo của người dùng
     parentInfo    ParentInfo? // Thông tin chi tiết phụ huynh
+    verifiedRecords AcademicRecord[] @relation("verifier") // Thêm relation với AcademicRecord
 
     @@map("users")
 }
@@ -159,8 +160,28 @@ model Manager {
 // Thông tin học sinh
 // Quản lý thông tin cá nhân và học tập của học sinh
 model Student {
+    id     Int @id @default(autoincrement())
+    userId Int @map("user_id") // Phụ huynh/người giám hộ
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    // Relations
+    user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+    application   Application? // Hồ sơ đăng ký
+    registration  StudentRegistration?
+    grades        Grade[] // Điểm các môn thi
+    bonusPoints   BonusPoint[] // Điểm thưởng/ưu tiên
+    Commitment    Commitment[]
+    PriorityPoint PriorityPoint[]
+    academicRecords AcademicRecord[] // Thêm relation với AcademicRecord
+
+    @@map("students")
+}
+
+model StudentRegistration {
     id          Int      @id @default(autoincrement())
-    userId      Int      @map("user_id") // Phụ huynh/người giám hộ
+    studentId   Int      @unique @map("student_id")
     fullName    String   @map("full_name") @db.VarChar(100)
     dateOfBirth DateTime @map("date_of_birth")
     gender      String   @db.VarChar(10)
@@ -185,18 +206,7 @@ model Student {
     studentCode          String? @map("student_code") @db.VarChar(50)
     identificationNumber String? @map("identification_number") @db.VarChar(50)
 
-    createdAt DateTime @default(now()) @map("created_at")
-    updatedAt DateTime @updatedAt @map("updated_at")
-
-    // Relations
-    user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-    application   Application? // Hồ sơ đăng ký
-    grades        Grade[] // Điểm các môn thi
-    bonusPoints   BonusPoint[] // Điểm thưởng/ưu tiên
-    Commitment    Commitment[]
-    PriorityPoint PriorityPoint[]
-
-    @@map("students")
+    student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }
 
 // Điểm thưởng/ưu tiên của học sinh
@@ -257,9 +267,9 @@ model Application {
     updatedAt DateTime @updatedAt @map("updated_at")
 
     // Relations
-    student             Student               @relation(fields: [studentId], references: [id], onDelete: Cascade)
+    student              Student               @relation(fields: [studentId], references: [id], onDelete: Cascade)
     // documents    Document[]    // Tài liệu đính kèm
-    scheduleSlot        ScheduleSlot? // Lịch thi được phân công
+    scheduleSlot         ScheduleSlot? // Lịch thi được phân công
     ApplicationDocuments ApplicationDocument[]
 
     @@map("applications")
@@ -279,7 +289,7 @@ model ApplicationDocument {
 
     // Relations
     application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-    document    Document?    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+    document    Document?   @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
     @@map("application_documents")
 }
@@ -360,14 +370,16 @@ model ScheduleSlot {
 // Quản lý thông tin môn thi
 model Subject {
     id          Int      @id @default(autoincrement())
-    name        String   @db.VarChar(100)
-    description String?  @db.Text
+    name        String   @db.VarChar(255) // Tên môn thi    
+    code        String   @unique @db.VarChar(255) // Mã môn thi
+    description String?  @db.Text // Mô tả môn thi
     createdAt   DateTime @default(now()) @map("created_at")
     updatedAt   DateTime @updatedAt @map("updated_at")
 
     // Relations
     grades   Grade[] // Điểm thi của học sinh
     criteria AdmissionCriteria[] // Tiêu chí tuyển sinh
+    subjectGrades SubjectGrade[] // Thêm relation với SubjectGrade
 
     @@map("subjects")
 }
@@ -413,7 +425,14 @@ model Notification {
     userId    Int      @map("user_id")
     title     String   @db.VarChar(255)
     content   String   @db.Text
+    htmlContent String? @map("html_content") @db.Text
+    description String? @db.Text
+    type      String   @default("SYSTEM") @db.VarChar(50) // SYSTEM, ADMIN, DOCUMENT, APPLICATION, etc.
+    priority  String   @default("NORMAL") @db.VarChar(20) // HIGH, NORMAL, LOW
     isRead    Boolean  @default(false) @map("is_read")
+    metadata  Json?    @default("{}")  // Additional data in JSON format
+    readAt    DateTime? @map("read_at")
+    sentVia   String[] @default(["DATABASE"]) @map("sent_via") // DATABASE, EMAIL, TELEGRAM, etc.
     createdAt DateTime @default(now()) @map("created_at")
     updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -421,4 +440,43 @@ model Notification {
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     @@map("notifications")
+}
+
+// Quản lý điểm số và kết quả học tập của học sinh
+model AcademicRecord {
+  id                Int       @id @default(autoincrement())
+  studentId         Int       @map("student_id")
+  semester         Int?
+  schoolYear       String?   @map("school_year") @db.VarChar(20)
+  source           String?   @db.VarChar(50)
+  verificationStatus String   @default("PENDING") @map("verification_status") @db.VarChar(20)
+  verifiedAt       DateTime? @map("verified_at")
+  verifiedBy       Int?      @map("verified_by")
+  notes            String?   @db.Text
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  student          Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  verifier         User?     @relation(name: "verifier", fields: [verifiedBy], references: [id])
+  grades           SubjectGrade[]
+
+  @@map("academic_records")
+}
+
+// Chi tiết điểm số cho từng môn học
+model SubjectGrade {
+  id               Int      @id @default(autoincrement())
+  academicRecordId Int      @map("academic_record_id")
+  subjectId        Int      @map("subject_id")
+  grade            Int      // Khối lớp (1-12)
+  score            Float    // Điểm số
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  academicRecord   AcademicRecord @relation(fields: [academicRecordId], references: [id], onDelete: Cascade)
+  subject          Subject        @relation(fields: [subjectId], references: [id])
+
+  @@map("subject_grades")
 }

@@ -2,7 +2,7 @@ import AuthService from '../../../src/api/services/auth.service';
 import { UserRepository } from '../../../src/repositories/user.repository';
 import { RoleRepository } from '../../../src/repositories/role.repository';
 import TokenService from '../../../src/api/services/token.service';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { UserRole } from '../../../src/common/enums/models/user';
 import Conflict from '../../../src/responses/client-errors/conflict';
@@ -14,7 +14,7 @@ import BadRequest from '../../../src/responses/client-errors/bad-request';
 jest.mock('../../../src/repositories/user.repository');
 jest.mock('../../../src/repositories/role.repository');
 jest.mock('../../../src/api/services/token.service');
-jest.mock('bcrypt');
+jest.mock('bcryptjs');
 jest.mock('jsonwebtoken');
 
 describe('AuthService', () => {

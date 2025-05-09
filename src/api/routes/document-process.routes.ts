@@ -2,9 +2,10 @@ import { Router } from 'express';
 import { DocumentProcessController } from 'controllers/document-process.controller';
 import { upload, validateFileUpload } from 'middlewares/file-validation.middleware';
 import { authenticate } from 'middlewares/authenticate';
-import { validateBody } from 'middlewares/validate-request';
+import { validateBody, validateParams } from 'middlewares/validate-request';
 import { uploadMiddleware } from '../middlewares/upload.middleware';
 import { FileType } from 'server/common/enums/file-types.enum';
+import { DocumentProcessValidation } from 'validations/document-process.validation';
 
 const documentProcessRouter = Router();
 const documentProcessController = new DocumentProcessController();
@@ -33,6 +34,7 @@ const documentProcessController = new DocumentProcessController();
  *                 format: binary
  *               type:
  *                 type: string
+ *                 enum: [transcript, certificate]
  *                 description: The type of document being uploaded
  *               applicationId:
  *                 type: string
@@ -87,12 +89,12 @@ const documentProcessController = new DocumentProcessController();
  */
 documentProcessRouter.post(
     '/document-upload',
-    uploadMiddleware(
-		{
-			fileTypes: [FileType.PDF],
-			maxFileSize: 1024 * 1024 * 50, // 10MB file size limit
-		}).single('file'),
+    uploadMiddleware({
+        fileTypes: [FileType.PDF, FileType.JPEG, FileType.PNG, FileType.WEBP],
+        maxFileSize: 1024 * 1024 * 50, // 50MB file size limit
+    }).single('file'),
     authenticate,
+    validateBody(DocumentProcessValidation.documentUpload),
     documentProcessController.uploadDocument
 );
 
@@ -150,6 +152,7 @@ documentProcessRouter.post(
 documentProcessRouter.get(
     '/application/:applicationId/documents',
     authenticate,
+    validateParams(DocumentProcessValidation.applicationId),
     documentProcessController.getApplicationDocuments
 );
 
@@ -200,6 +203,7 @@ documentProcessRouter.get(
 documentProcessRouter.get(
     '/document-upload/:documentId/extracted-data',
     authenticate,
+    validateParams(DocumentProcessValidation.documentId),
     documentProcessController.getExtractedData
 );
 
@@ -217,7 +221,7 @@ documentProcessRouter.get(
  *         required: true
  *         schema:
  *           type: string
- *         description: ID of the extracted data to update
+ *         description: ID of the extracted data to verify
  *     requestBody:
  *       required: true
  *       content:
@@ -229,38 +233,19 @@ documentProcessRouter.get(
  *             properties:
  *               isVerified:
  *                 type: boolean
+ *                 description: Whether the extracted data is verified
+ *               verificationNotes:
+ *                 type: string
+ *                 description: Optional notes about the verification
  *     responses:
  *       200:
  *         description: Extracted data verified successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     extractedData:
- *                       type: object
- *                       properties:
- *                         id:
- *                           type: string
- *                         fields:
- *                           type: object
- *                         isVerified:
- *                           type: boolean
- *       400:
- *         description: Invalid extracted data ID or verification status
- *       401:
- *         description: Unauthorized - Invalid or missing token
  */
 documentProcessRouter.patch(
     '/document-upload/extracted-data/:extractedDataId',
     authenticate,
+    validateParams(DocumentProcessValidation.extractedDataId),
+    validateBody(DocumentProcessValidation.verifyExtractedData),
     documentProcessController.verifyExtractedData
 );
 

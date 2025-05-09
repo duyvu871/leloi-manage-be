@@ -56,6 +56,10 @@ const config = {
     defaultExpire: parseInt(process.env.DEFAULT_EXPIRE, 10),
     assetsUrl: process.env.ASSETS_URL,
     baseUrl: process.env.BASE_URL,
+
+    // telegram bot token
+    recipientId: process.env.TELEGRAM_RECIPIENT_ID,
+    telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
     // minio configuration
     minioUrl: process.env.MINIO_URL,
     minioAccessKey: process.env.MINIO_ACCESS_KEY,

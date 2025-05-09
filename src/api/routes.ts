@@ -17,7 +17,7 @@ apiRouter.use('/asset', assetUploadRouter);
 apiRouter.use('/parent', parentRouter);
 apiRouter.use('/process', documentProcessRouter);
 apiRouter.use("/registration", registrationRouter);
-pageRouter.use("/notification", notificationRouter);
+apiRouter.use("/notification", notificationRouter);
 
 // Add page routes directly to the page router
 pageRouter.use("/", pageRoutes);

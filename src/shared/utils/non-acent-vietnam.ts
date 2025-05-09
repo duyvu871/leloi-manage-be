@@ -36,6 +36,16 @@ class VietnameseAccentConverter {
 		str = str.replace(/\u02C6|\u0306|\u031B/g, ""); // Â, Ê, Ă, Ơ, Ư
 		return str;
 	}
+
+	public static toNonAccentVietnameseWithoutSpace(str: string, lowerCase: boolean = true): string {
+		// replace all space with _
+		str = lowerCase ? this.toLowerCaseNonAccentVietnamese(str) : this.toNonAccentVietnamese(str);
+		return this.removeSpecialCharacters(str.replace(/\s/g, '_'));
+	}
+
+	public static removeSpecialCharacters(str: string): string {
+		return str.replace(/[^a-zA-Z0-9_]/g, '');
+	}
 }
 
 export { VietnameseAccentConverter };

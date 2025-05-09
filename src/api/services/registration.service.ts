@@ -39,6 +39,10 @@ export class RegistrationService {
                 studentId: student.id,
                 // applicationId: application.id
             };
+        }, {
+            timeout: 10000,
+            maxWait: 10000,
+            // isolationLevel: 'read committed' //
         });
     }
 
@@ -48,17 +52,21 @@ export class RegistrationService {
         return await tx.student.create({
             data: {
                 userId: userId,
-                fullName: studentInfo.fullName || '',
-                dateOfBirth: studentInfo.dateOfBirth || new Date(),
-                gender: studentInfo.gender || 'male',
-                educationDepartment: studentInfo.educationDepartment || '',
-                primarySchool: studentInfo.primarySchool || '',
-                grade: studentInfo.grade || '',
-                placeOfBirth: studentInfo.placeOfBirth || '',
-                ethnicity: studentInfo.ethnicity || '',
-                permanentAddress: residenceInfo.permanentAddress || '',
-                temporaryAddress: residenceInfo.temporaryAddress,
-                currentAddress: residenceInfo.currentAddress || '',
+                registration: {
+                    create: {
+                        fullName: studentInfo.fullName || '',
+                        dateOfBirth: studentInfo.dateOfBirth || new Date(),
+                        gender: studentInfo.gender || 'male',
+                        educationDepartment: studentInfo.educationDepartment || '',
+                        primarySchool: studentInfo.primarySchool || '',
+                        grade: studentInfo.grade || '',
+                        placeOfBirth: studentInfo.placeOfBirth || '',
+                        ethnicity: studentInfo.ethnicity || '',
+                        permanentAddress: residenceInfo.permanentAddress || '',
+                        temporaryAddress: residenceInfo.temporaryAddress,
+                        currentAddress: residenceInfo.currentAddress || '',
+                    }
+                },
                 application: {
                     create: {}
                 }
@@ -215,6 +223,7 @@ export class RegistrationService {
             const student = await tx.student.findFirst({
                 where: { id: studentId },
                 include: {
+                    registration: true,
                     Commitment: true,
                     bonusPoints: true,
                     PriorityPoint: true,
@@ -236,7 +245,24 @@ export class RegistrationService {
             }
 
             return {
-                student,
+                student: {
+                    id: student.id,
+                    userId: student.userId,
+                    fullName: student.registration?.fullName || '',
+                    dateOfBirth: student.registration?.dateOfBirth || new Date(),
+                    gender: student.registration?.gender || 'male',
+                    educationDepartment: student.registration?.educationDepartment || '',
+                    primarySchool: student.registration?.primarySchool || '',
+                    grade: student.registration?.grade || '',
+                    placeOfBirth: student.registration?.placeOfBirth || '',
+                    ethnicity: student.registration?.ethnicity || '',
+                    permanentAddress: student.registration?.permanentAddress || '',
+                    temporaryAddress: student.registration?.temporaryAddress || '',
+                    currentAddress: student.registration?.currentAddress || '',
+                    createdAt: student.createdAt,
+                    updatedAt: student.updatedAt,
+                    // ...student.registration,
+                },
                 parentInfo,
                 application: student.application,
                 grades: student.grades,

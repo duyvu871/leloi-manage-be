@@ -64,30 +64,30 @@ services:
             timeout: 5s
             retries: 5
 
-    server:
-        build:
-            context: .
-            dockerfile: Dockerfile
-        restart: unless-stopped
-        ports:
-            - '${SERVER_PORT}:${SERVER_PORT}'
-        cap_add:
-            - SYS_TIME
-        depends_on:
-            postgres:
-                condition: service_healthy
-            redis:
-                condition: service_healthy
-            minio:
-                condition: service_healthy
-        env_file:
-            - .env
-        environment:
-            TZ: Asia/Ho_Chi_Minh
-        volumes:
-            - ./logs:/usr/src/app/logs
-            - ./startup.sh:/usr/src/app/startup.sh
-            - ./storage:/usr/src/app/storage
+    # server:
+    #     build:
+    #         context: .
+    #         dockerfile: Dockerfile
+    #     restart: unless-stopped
+    #     ports:
+    #         - '${SERVER_PORT}:${SERVER_PORT}'
+    #     cap_add:
+    #         - SYS_TIME
+    #     depends_on:
+    #         postgres:
+    #             condition: service_healthy
+    #         redis:
+    #             condition: service_healthy
+    #         minio:
+    #             condition: service_healthy
+    #     env_file:
+    #         - .env
+    #     environment:
+    #         TZ: Asia/Ho_Chi_Minh
+    #     volumes:
+    #         - ./logs:/usr/src/app/logs
+    #         - ./startup.sh:/usr/src/app/startup.sh
+    #         - ./storage:/usr/src/app/storage
 
 volumes:
     postgres_data:

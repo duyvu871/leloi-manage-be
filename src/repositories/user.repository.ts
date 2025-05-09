@@ -25,17 +25,6 @@ export class UserRepository {
     }
 
     /**
-     * Find a user by username
-     * @param username Username to search for
-     * @returns User or null if not found
-     */
-    async findByUsername(username: string): Promise<User | null> {
-        return prisma.user.findUnique({
-            where: { username },
-        });
-    }
-
-    /**
      * Find a user by email
      * @param email Email to search for
      * @returns User or null if not found
@@ -155,6 +144,7 @@ export class UserRepository {
                 },
                 students: {
                     include: {
+                        registration: true,
                         PriorityPoint: true,
                         bonusPoints: true,
                         Commitment: true,

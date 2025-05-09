@@ -8,6 +8,7 @@ import BadRequest from 'responses/client-errors/bad-request';
 import InternalServerError from 'responses/server-errors/internal-server-error';
 import prisma from 'repository/prisma';
 import { PrismaClient } from '@prisma/client';
+import { create } from 'domain';
 
 /**
  * Service class for handling parent-related operations
@@ -33,9 +34,23 @@ export default class ParentService {
      */
     public async addStudent(userId: string | number, studentData: StudentDto) {
         try {
-            const student = await this.prisma.student.create({
+            const user = await this.prisma.user.findUnique({
+                where: { id: Number(userId) },
+                select: {
+                    students: true
+                }
+                // include: { students: true }
+            });
+            if (!user) {
+                throw new BadRequest('USER_NOT_FOUND', 'User not found', 'Người dùng không tồn tại');
+            }
+            const studentId = user.students?.[0]?.id;
+            if (!studentId) {
+                throw new InternalServerError('INTERNAL_SERVER_ERROR', 'Internal server error', 'Người dùng không tồn tại');
+            }
+            const student = await this.prisma.studentRegistration.create({
                 data: {
-                    userId: Number(userId),
+                    studentId: studentId,
                     fullName: studentData.fullName,
                     dateOfBirth: new Date(studentData.dateOfBirth),
                     gender: studentData.gender,
@@ -145,8 +160,8 @@ export default class ParentService {
             const application = await this.prisma.application.create({
                 data: {
                     studentId: student.id,
-                    status: 'pending',
-                    isEligible: false
+                    // status: 'pending',
+                    // isEligible: false
                 }
             });
 
@@ -172,7 +187,7 @@ export default class ParentService {
                 },
                 include: {
                     student: true,
-                    documents: true,
+                    ApplicationDocuments: true,
                     scheduleSlot: true
                 }
             });
@@ -201,7 +216,7 @@ export default class ParentService {
                 },
                 include: {
                     student: true,
-                    documents: true,
+                    ApplicationDocuments: true,
                     scheduleSlot: true
                 }
             });
@@ -249,15 +264,24 @@ export default class ParentService {
                 { 'Content-Type': file.mimetype }
             );
 
-            const document = await this.prisma.document.create({
-                data: {
-                    applicationId: application.id,
-                    type,
-                    filePath: objectKey,
-                    fileSize: file.size,
-                    mimeType: file.mimetype
-                }
-            });
+            // const document = await this.prisma.applicationDocument.create({
+            //     data: {
+            //         applicationId: application.id,
+            //         type,
+            //         document: {
+            //             create: {
+            //                 name: file.originalname,
+            //                 url: `${storageConfig.}/${.bucketName}/${objectKey}`,
+            //                 filePath: objectKey,
+            //                 fileSize: file.size,
+            //                 mimeType: file.mimetype
+            //             }
+            //         }
+            //         // filePath: objectKey,
+            //         // fileSize: file.size,
+            //         // mimeType: file.mimetype
+            //     }
+            // });
 
             return document;
         } catch (error) {
