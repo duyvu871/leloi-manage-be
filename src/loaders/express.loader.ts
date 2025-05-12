@@ -57,7 +57,12 @@ class ExpressServer {
         this._app = express();
 
         // Enable Cross-Origin Resource Sharing (CORS)
-        this._app.use(cors());
+        this._app.use(cors({
+            origin: '*',
+            methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+            allowedHeaders: ['Content-Type', 'Authorization'],
+            credentials: true,  
+        }));
 
         // Parse Cookie headers
         this._app.use(cookieParser());
