@@ -59,7 +59,7 @@ class ExpressServer {
         // Enable Cross-Origin Resource Sharing (CORS)
         this._app.use(cors({
             origin: '*',
-            methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+            methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],
             allowedHeaders: ['Content-Type', 'Authorization'],
             credentials: true,  
         }));
