@@ -11,8 +11,8 @@ module.exports = {
           NODE_ENV: 'production',
           PORT: 8080
         },
-        error_file: './logs/server-error.log',
-        out_file: './logs/server-out.log',
+        error_file: './server-error.log',
+        out_file: './server-out.log',
         merge_logs: true,
       },
       {
@@ -24,8 +24,8 @@ module.exports = {
         env: {
           NODE_ENV: 'production',
         },
-        error_file: './logs/process-document-error.log',
-        out_file: './logs/process-document-out.log',
+        error_file: './process-document-error.log',
+        out_file: './process-document-out.log',
         merge_logs: true,
       },
       {
@@ -37,8 +37,8 @@ module.exports = {
         env: {
           NODE_ENV: 'production',
         },
-        error_file: './logs/telegram-worker-error.log',
-        out_file: './logs/telegram-worker-out.log',
+        error_file: './telegram-worker-error.log',
+        out_file: './telegram-worker-out.log',
         merge_logs: true,
       },
       {
@@ -50,8 +50,8 @@ module.exports = {
         env: {
           NODE_ENV: 'production',
         },
-        error_file: './logs/email-worker-error.log',
-        out_file: './logs/email-worker-out.log',
+        error_file: './email-worker-error.log',
+        out_file: './email-worker-out.log',
         merge_logs: true,
       }
     ]
