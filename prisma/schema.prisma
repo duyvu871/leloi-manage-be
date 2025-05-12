@@ -41,6 +41,7 @@ model User {
     notifications Notification[] // Thông báo của người dùng
     parentInfo    ParentInfo? // Thông tin chi tiết phụ huynh
     verifiedRecords AcademicRecord[] @relation("verifier") // Thêm relation với AcademicRecord
+    feedback      Feedback[] // Phản hồi của người dùng
 
     @@map("users")
 }
@@ -453,6 +454,7 @@ model AcademicRecord {
   verifiedAt       DateTime? @map("verified_at")
   verifiedBy       Int?      @map("verified_by")
   notes            String?   @db.Text
+  scores           Json?
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
@@ -479,4 +481,41 @@ model SubjectGrade {
   subject          Subject        @relation(fields: [subjectId], references: [id])
 
   @@map("subject_grades")
+}
+
+model TimelineItem {
+  id          Int      @id @default(autoincrement())
+  title       String
+  startDate   DateTime
+  endDate     DateTime
+  description String
+  status      String
+  type        String   // registration | document | exam | result | enrollment
+  color       String
+  alert       Json?
+  links       Json?
+  hidden      Boolean  @default(false)
+  order       Int      @default(autoincrement())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("timeline_items")
+}
+
+model Feedback {
+    id           Int      @id @default(autoincrement())
+    type         String   @db.VarChar(50) // error | suggestion | other
+    content      String   @db.Text
+    needSupport  Boolean  @default(false) @map("need_support")
+    needCallback Boolean  @default(false) @map("need_callback")
+    isUrgent     Boolean  @default(false) @map("is_urgent")
+    status       String   @default("pending") @db.VarChar(20) // pending | resolved
+    userId       Int      @map("user_id")
+    createdAt    DateTime @default(now()) @map("created_at")
+    updatedAt    DateTime @updatedAt @map("updated_at")
+
+    // Relations
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@map("feedback")
 }

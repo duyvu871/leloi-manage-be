@@ -930,15 +930,19 @@ function generateGradesTable(data: TranscriptData): string {
  */
 function generatePhamChatSection(phamChat?: Record<string, string>): string {
     if (!phamChat) return '';
+
+    console.log(Object.entries(phamChat).map(([key, value]) => `${key}: ${value}`));
+    
+
     return `
     <div style="margin-top: 15px;">
         <h5 style="color: #2c3e50;">Phẩm chất:</h5>
         <ul style="list-style: none; padding-left: 0;">
-            ${Object.entries(phamChat).map(([key, value]) => `
+            ${Object.entries(phamChat).map(([key, value]) => value ? `
                 <li style="margin: 5px 0; padding: 8px; background-color: ${getPhamChatColor(value)}; border-radius: 4px;">
                     ${key}: <strong>${value}</strong>
                 </li>
-            `).join('')}
+            ` : '').join('')}
         </ul>
     </div>`;
 }
@@ -952,11 +956,11 @@ function generateNangLucSection(nangLuc?: Record<string, string>): string {
     <div style="margin-top: 15px;">
         <h5 style="color: #2c3e50;">Năng lực:</h5>
         <ul style="list-style: none; padding-left: 0;">
-            ${Object.entries(nangLuc).map(([key, value]) => `
+            ${Object.entries(nangLuc).map(([key, value]) => value ? `
                 <li style="margin: 5px 0; padding: 8px; background-color: ${getNangLucColor(value)}; border-radius: 4px;">
                     ${key}: <strong>${value}</strong>
                 </li>
-            `).join('')}
+            ` : '' ).join('')}
         </ul>
     </div>`;
 }

@@ -1,28 +1,35 @@
-export interface DraftFormData {
+export interface Student {
+    id: number;
+    userId: number;
+    fullName: string;
+    dateOfBirth: Date;
+    gender: string;
+    educationDepartment: string;
+    primarySchool: string;
+    grade: string;
+    placeOfBirth: string;
+    ethnicity: string;
+    permanentAddress: string;
+    temporaryAddress?: string;
+    currentAddress: string;
+    examNumber?: string;
+    examRoom?: string;
+    studentCode?: string;
+    identificationNumber?: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
 
-  academicRecords: {
-    grades: {
-      grade: number
-      math: number
-      vietnamese: number
-      english?: number
-      science?: number
-      history?: number
-    }[]
-  };
+export interface Application {
+    id: number;
+    studentId: number;
+    createdAt: Date;
+    updatedAt: Date;
+}
 
-  studentInfo: {
-    fullName?: string;
-    dateOfBirth?: Date;
-    gender?: 'male' | 'female';
-    educationDepartment?: string;
-    primarySchool?: string;
-    grade?: string;
-    placeOfBirth?: string;
-    ethnicity?: string;
-  };
-
-  parentInfo: {
+export interface ParentInfo {
+    id: number;
+    userId: number;
     fatherName?: string;
     fatherBirthYear?: number;
     fatherPhone?: string;
@@ -42,25 +49,71 @@ export interface DraftFormData {
     guardianOccupation?: string;
     guardianWorkplace?: string;
     guardianRelationship?: string;
-  };
+    createdAt: Date;
+    updatedAt: Date;
+}
 
-  residenceInfo: {
-    permanentAddress?: string;
-    temporaryAddress?: string;
-    currentAddress?: string;
-  };
+export interface PriorityPoint {
+    id: number;
+    studentId: number;
+    type: string;
+    points: number;
+    createdAt: Date;
+    updatedAt: Date;
+}
 
-  commitment?: {
-    relationship?: string;
-    signatureDate?: Date;
-    guardianName?: string;
-    applicantName?: string;
-  };
-
-  competitionResults?: {
+export interface CompetitionResult {
     competitionId: string;
     level: string;
-    year: number;
     achievement: string;
-  }[];
+    points: number;
+    year: number;
+}
+
+export interface Commitment {
+    id: number;
+    studentId: number;
+    relationship: string;
+    signatureDate: Date;
+    guardianName: string;
+    applicantName: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+export interface Grade {
+    grade: number;
+    math: number;
+    vietnamese: number;
+    english?: number;
+    science?: number;
+    history?: number;
+}
+
+export interface AcademicRecords {
+    academicRecords: {
+        grades: Grade[];
+    };
+}
+
+export interface RegistrationData {
+    student: Student;
+    application: Application | null;
+    parentInfo: ParentInfo;
+    priorityPoint?: PriorityPoint;
+    competitionResults?: CompetitionResult[];
+    commitment?: Commitment;
+    academicRecords?: AcademicRecords;
+}
+
+// Request types
+export interface StudentIdParam {
+    studentId: string;
+}
+
+// Response types
+export interface RegistrationResponse {
+    success: boolean;
+    message: string;
+    data: RegistrationData;
 }

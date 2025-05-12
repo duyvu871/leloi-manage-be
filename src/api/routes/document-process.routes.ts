@@ -2,10 +2,11 @@ import { Router } from 'express';
 import { DocumentProcessController } from 'controllers/document-process.controller';
 import { upload, validateFileUpload } from 'middlewares/file-validation.middleware';
 import { authenticate } from 'middlewares/authenticate';
-import { validateBody, validateParams } from 'middlewares/validate-request';
+import { validateBody, validateParams, validateQuery } from 'middlewares/validate-request';
 import { uploadMiddleware } from '../middlewares/upload.middleware';
 import { FileType } from 'server/common/enums/file-types.enum';
 import { DocumentProcessValidation } from 'validations/document-process.validation';
+import { PaginationValidation } from '../validations/pagination.validation';
 
 const documentProcessRouter = Router();
 const documentProcessController = new DocumentProcessController();
@@ -90,9 +91,9 @@ const documentProcessController = new DocumentProcessController();
 documentProcessRouter.post(
     '/document-upload',
     uploadMiddleware({
-        fileTypes: [FileType.PDF, FileType.JPEG, FileType.PNG, FileType.WEBP],
+		fileTypes: [FileType.PDF, FileType.JPEG, FileType.PNG, FileType.WEBP],
         maxFileSize: 1024 * 1024 * 50, // 50MB file size limit
-    }).single('file'),
+	}).array('files', 10),
     authenticate,
     validateBody(DocumentProcessValidation.documentUpload),
     documentProcessController.uploadDocument
@@ -113,6 +114,23 @@ documentProcessRouter.post(
  *         schema:
  *           type: string
  *         description: ID of the application to get documents for
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter documents by status
  *     responses:
  *       200:
  *         description: Documents retrieved successfully
@@ -144,8 +162,17 @@ documentProcessRouter.post(
  *                           uploadedAt:
  *                             type: string
  *                             format: date-time
+ *                     total:
+ *                       type: integer
+ *                       description: Total number of documents matching the filter
+ *                     pageSize:
+ *                       type: integer
+ *                       description: Number of items per page
+ *                     page:
+ *                       type: integer
+ *                       description: Current page number
  *       400:
- *         description: Invalid application ID
+ *         description: Invalid application ID or query parameters
  *       401:
  *         description: Unauthorized - Invalid or missing token
  */
@@ -153,6 +180,7 @@ documentProcessRouter.get(
     '/application/:applicationId/documents',
     authenticate,
     validateParams(DocumentProcessValidation.applicationId),
+    validateQuery(PaginationValidation.paginationQuery),
     documentProcessController.getApplicationDocuments
 );
 

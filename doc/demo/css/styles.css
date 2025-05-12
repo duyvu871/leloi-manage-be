@@ -1,0 +1,71 @@
+/* Custom styles for the admission management system */
+
+/* Active tab highlighting */
+.tab-link.active {
+    background-color: #e6efff;
+    color: #1e40af;
+    font-weight: 600;
+}
+
+/* Show active tab content and hide others */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Status badges */
+.status-badge-eligible {
+    background-color: #10b981; /* green */
+}
+
+.status-badge-ineligible {
+    background-color: #ef4444; /* red */
+}
+
+.status-badge-pending {
+    background-color: #f59e0b; /* amber/yellow */
+}
+
+.status-badge-confirmed {
+    background-color: #3b82f6; /* blue */
+}
+
+/* File upload hover effects */
+.file-upload-area:hover {
+    border-color: #1e40af;
+}
+
+/* Animation for loading spinner */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Custom scrollbar for better UX */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a1a1a1;
+}

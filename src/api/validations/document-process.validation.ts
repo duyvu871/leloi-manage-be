@@ -3,7 +3,7 @@ import { FileType } from "server/common/enums/file-types.enum";
 
 export class DocumentProcessValidation {
     public static documentUpload = z.object({
-        file: z.any(), // File validation is handled by middleware
+        // file: z.any(), // File validation is handled by middleware
         type: z.enum(['transcript', 'certificate'] as const, {
             required_error: "Document type is required",
             invalid_type_error: "Invalid document type"

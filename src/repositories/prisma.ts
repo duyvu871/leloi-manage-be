@@ -2,7 +2,9 @@ import { PrismaClient } from "@prisma/client";
 
 const prismaClientSingleton = (): PrismaClient => {
 	return new PrismaClient({
-		// log: ['query', 'info', 'warn', 'error'],
+		...(process.env.NODE_ENV === "development" && {
+			log: ['query', 'info', 'warn', 'error'],
+		})
 	});
 };
 
@@ -26,7 +28,7 @@ prisma.$use(async (params, next) => {
 
 	const after = Date.now();
 
-	// console.log(`Query ${params.model}.${params.action} took ${after - before}ms`);
+	console.log(`Query ${params.model}.${params.action} took ${after - before}ms`);
 
 	return result;
 })

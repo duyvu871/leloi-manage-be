@@ -103,27 +103,78 @@ export const completeRegistrationSchema = z.object({
   parentInfo: parentInfoSchema.optional()
 });
 
-// Server-side schema for API validation - converts dates to strings for API transmission
-export const registrationApiSchema = studentRegistrationSchema.transform((data) => ({
-  ...data,
-  studentInfo: {
-    ...data.studentInfo,
-    dateOfBirth: data.studentInfo.dateOfBirth.toISOString().split('T')[0],
-  }
-}));
+// Schema cho điểm số học tập
+const academicGradeSchema = z.object({
+  grade: z.number().int().min(1).max(12),
+  math: z.number().min(0).max(10),
+  vietnamese: z.number().min(0).max(10),
+  english: z.number().min(0).max(10).optional(),
+  science: z.number().min(0).max(10).optional(),
+  history: z.number().min(0).max(10).optional(),
+});
+
+// Schema cho kết quả thi đấu/cuộc thi
+const competitionResultSchema = z.object({
+  competitionId: z.string(),
+  level: z.string(),
+  year: z.number().int(),
+  achievement: z.string(),
+});
+
+// Schema cho API đăng ký
+export const registrationApiSchema = z.object({
+  // A. Thông tin học tập
+  academicRecords: z.object({
+    grades: z.array(academicGradeSchema)
+  }),
+
+  // B. Thông tin học sinh
+  studentInfo: z.object({
+    fullName: z.string().min(1, { message: 'Họ và tên học sinh không được để trống' }),
+    dateOfBirth: z.string().datetime({
+      message: 'Ngày sinh không hợp lệ',
+    }),
+    gender: z.enum(['male', 'female'], { message: 'Vui lòng chọn giới tính' }),
+    educationDepartment: z.string().min(1, { message: 'Phòng GDĐT không được để trống' }),
+    primarySchool: z.string().min(1, { message: 'Trường tiểu học không được để trống' }),
+    grade: z.string().min(1, { message: 'Lớp không được để trống' }),
+    placeOfBirth: z.string().min(1, { message: 'Nơi sinh không được để trống' }),
+    ethnicity: z.string().min(1, { message: 'Dân tộc không được để trống' }),
+  }),
+
+  // C. Thông tin phụ huynh
+  parentInfo: parentInfoSchema,
+
+  // D. Thông tin cư trú
+  residenceInfo: z.object({
+    permanentAddress: z.string().min(1, { message: 'Địa chỉ thường trú không được để trống' }),
+    temporaryAddress: z.string().optional(),
+    currentAddress: z.string().min(1, { message: 'Địa chỉ hiện tại không được để trống' }),
+  }),
+
+  // E. Cam kết
+  commitment: z.object({
+    relationship: z.string().min(1, { message: 'Mối quan hệ không được để trống' }),
+    signatureDate: z.string().datetime({
+      message: 'Ngày ký không hợp lệ',
+    }),
+    guardianName: z.string().min(1, { message: 'Tên người giám hộ không được để trống' }),
+    applicantName: z.string().min(1, { message: 'Tên người đăng ký không được để trống' }),
+  }).optional(),
+
+  // F. Kết quả thi đấu/cuộc thi
+  competitionResults: z.array(competitionResultSchema).optional(),
+});
 
 export const studentIdParam = z.object({
-  studentId: z.string().refine((val) => !isNaN(Number(val)), {
-    message: 'ID học sinh không hợp lệ', 
-    path: ['studentId'],
-  }),
+  studentId: z.string().regex(/^\d+$/, {
+    message: 'ID học sinh không hợp lệ',
+  })
 });
 
 export type ParentRegistrationData = z.infer<typeof parentRegistrationSchema>;
 export type StudentRegistrationData = z.infer<typeof studentRegistrationSchema>;
-
 export type ParentInfoData = z.infer<typeof parentInfoSchema>;
 export type CompleteRegistrationData = z.infer<typeof completeRegistrationSchema>;
-
 export type RegistrationApiData = z.infer<typeof registrationApiSchema>;
 export type StudentIdParam = z.infer<typeof studentIdParam>;

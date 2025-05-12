@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống Quản lý Tuyển sinh - Đăng nhập</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1e40af', // Blue color as primary
+                        secondary: '#60a5fa',
+                        accent: '#3b82f6',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- jQuery CDN -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="flex items-center justify-center min-h-screen">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-primary">Hệ thống Quản lý Tuyển sinh</h1>
+                <p class="text-gray-600 mt-2">Đăng nhập để tiếp tục</p>
+            </div>
+            
+            <div class="mb-6">
+                <div class="relative">
+                    <input type="text" id="username" class="w-full p-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Tên đăng nhập">
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <div class="relative">
+                    <input type="password" id="password" class="w-full p-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Mật khẩu">
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center">
+                    <input type="checkbox" id="remember" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded">
+                    <label for="remember" class="ml-2 block text-sm text-gray-700">Ghi nhớ đăng nhập</label>
+                </div>
+                <a href="#" class="text-sm text-primary hover:underline">Quên mật khẩu?</a>
+            </div>
+            
+            <button id="login-btn" class="w-full bg-primary text-white py-3 rounded-lg hover:bg-blue-800 transition">Đăng nhập</button>
+            
+            <div class="mt-8 text-center">
+                <p class="text-gray-600">Hỗ trợ kỹ thuật: <a href="mailto:support@example.com" class="text-primary hover:underline">support@example.com</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

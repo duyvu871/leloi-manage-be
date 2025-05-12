@@ -18,8 +18,9 @@
     "license": "ISC",
     "scripts": {
         "dev": "set NODE_ENV=development&&set PORT=8080&&tsup --watch --onSuccess \"npm run start\"",
-        "start": "npx concurrently \"node dist/server.js\" \"node dist/workers/process-document.js\" \"node dist/workers/telegram-worker.js\"",
+        "start": "npx concurrently \"node dist/server.js\" \"node dist/workers/process-document.js\" \"node dist/workers/telegram-worker.js\" \"node dist/workers/email.worker.js\"",
         "start:telegram": "node dist/scripts/start-telegram-worker.js",
+        "start:email": "node dist/workers/email.worker.js",
         "build": "tsup && tsc-alias",
         "test": "jest",
         "postinstall": "prisma generate --schema=./prisma/schema.prisma",

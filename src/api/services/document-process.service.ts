@@ -15,6 +15,8 @@ import { CertificateProcessResult, DocumentProcessJob, TranscriptData } from 'se
 import { DocumentProcessStatus, ApplicationFailedReason, ApplicationFailedReasonMessage } from 'server/common/enums/services/document-process.enum';
 import { VietnameseAccentConverter } from 'server/shared/utils/non-acent-vietnam';
 import { ProcessServiceValidation } from '../validations/process.service.validation';
+import { PrismaPaginationOptions } from 'server/shared/helpers/pagination-parse';
+import { Transaction } from 'server/@types/prisma';
 
 /**
  * Service class for processing documents (transcripts and certificates)
@@ -99,12 +101,14 @@ export default class DocumentProcessService {
 
     /**
      * Processes a transcript document (PDF)
-     * @param file - The file to process (must be a Multer file object)
+     * @param applicationDocumentId - The ID of the ApplicationDocument record
+     * @param docId - The ID of the document
      * @param userId - The ID of the user uploading the file
      * @returns Promise containing job ID and initial status
      * @throws {BadRequest} When file is missing or invalid
      */
-    public async processTranscript(applicationDocumentId: number, docId: number, userId: number): Promise<{ id: string, jobId?: string, status: string }> {
+    public async processTranscript(applicationDocumentId: number, docId: number, userId: number, tx?: Transaction): Promise<{ id: string, jobId?: string, status: string }> {
+        const prismaTx = tx || prisma;
         // Check if service is configured as producer or both
         if (this.role !== 'producer' && this.role !== 'both') {
             throw new InternalServerError(
@@ -119,7 +123,7 @@ export default class DocumentProcessService {
         }
 
         try {
-            const document = await prisma.document.findUnique({
+            const document = await prismaTx.document.findUnique({
                 where: { id: docId }
             });
 
@@ -144,6 +148,15 @@ export default class DocumentProcessService {
 
             await this.documentJobService.createJob(jobData);
             
+            // If there's an existing job for this document, let's delete it
+            // const existingJobs = await this.transcriptQueue.getJobs(['active', 'waiting', 'delayed']);
+            // for (const job of existingJobs) {
+            //     if (job.data.fileId === document.id) {
+            //         logger.info(`Removing existing job ${job.id} for document ${document.id}`);
+            //         await job.remove();
+            //     }
+            // }
+
             const job = await this.transcriptQueue.add(`process-transcript`, jobData, {
                 jobId: jobData.id,
                 removeOnComplete: true,
@@ -165,13 +178,14 @@ export default class DocumentProcessService {
 
     /**
      * Processes a certificate document (image)
-     * @param file - The file to process (must be a Multer file object)
+     * @param applicationDocumentId - The ID of the ApplicationDocument record
+     * @param docId - The ID of the document
      * @param userId - The ID of the user uploading the file
-     * @param name - Optional name parameter for certificate verification
      * @returns Promise containing job ID and initial status
      * @throws {BadRequest} When file is missing or invalid
      */
-    public async processCertificate(applicationDocumentId: number, docId: number, userId: number): Promise<{ id: string, jobId?: string, status: string }> {
+    public async processCertificate(applicationDocumentId: number, docId: number, userId: number, tx?: Transaction): Promise<{ id: string, jobId?: string, status: string }> {
+        const prismaTx = tx || prisma;
         // Check if service is configured as producer or both
         if (this.role !== 'producer' && this.role !== 'both') {
             throw new InternalServerError(
@@ -186,45 +200,53 @@ export default class DocumentProcessService {
         }
 
         try {
-                const document = await prisma.document.findUnique({
-                    where: { id: docId }
-                });
+            const document = await prismaTx.document.findUnique({
+                where: { id: docId }
+            });
 
-                if (!document) {
-                    throw new BadRequest('DOCUMENT_NOT_FOUND', 'Document not found', 'Không tìm thấy tài liệu');
-                }
+            if (!document) {
+                throw new BadRequest('DOCUMENT_NOT_FOUND', 'Document not found', 'Không tìm thấy tài liệu');
+            }
 
-                const jobId = `certificate-${Date.now()}-${docId}`;
-                const jobData: DocumentProcessJob<any> = {
-                    id: jobId,
-                    userId,
-                    fileId: document.id,
-                    fileName: document.name,
-                    fileUrl: document.url,
-                    path: document.filePath,
-                    applicationDocumentId: applicationDocumentId,
-                    type: 'certificate',
-                    status: 'pending',
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
-                }
+            const jobId = `certificate-${Date.now()}-${docId}`;
+            const jobData: DocumentProcessJob<any> = {
+                id: jobId,
+                userId,
+                fileId: document.id,
+                fileName: document.name,
+                fileUrl: document.url,
+                path: document.filePath,
+                applicationDocumentId: applicationDocumentId,
+                type: 'certificate',
+                status: 'pending',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            }
 
-                this.documentJobService.createJob(jobData);
-                
-                const job = await this.certificateQueue.add(`process-certificate`, jobData, {
-                    jobId: jobData.id,
-                    removeOnComplete: true,
-                    removeOnFail: true,
-                });
+            this.documentJobService.createJob(jobData);
+            
+            // If there's an existing job for this document, let's delete it
+            // const existingJobs = await this.certificateQueue.getJobs(['active', 'waiting', 'delayed']);
+            // for (const job of existingJobs) {
+            //     if (job.data.fileId === document.id) {
+            //         logger.info(`Removing existing job ${job.id} for document ${document.id}`);
+            //         await job.remove();
+            //     }
+            // }
 
-                logger.info(`Added certificate processing job to queue: ${job.id}`);
+            const job = await this.certificateQueue.add(`process-certificate`, jobData, {
+                jobId: jobData.id,
+                removeOnComplete: true,
+                removeOnFail: true,
+            });
 
-                return {
-                    id: jobData.id,
-                    jobId: job.id,
-                    status: 'pending'
-                };
+            logger.info(`Added certificate processing job to queue: ${job.id}`);
 
+            return {
+                id: jobData.id,
+                jobId: job.id,
+                status: 'pending'
+            };
         } catch (error) {
             logger.error('Error adding certificate job to queue:', error);
             throw new InternalServerError(
@@ -299,7 +321,7 @@ export default class DocumentProcessService {
         try {
 
             console.log('jobData', jobData.id);
-            
+
             // Update job status
             await this.updateJobStatus(jobData.id, 'processing');
 
@@ -328,10 +350,14 @@ export default class DocumentProcessService {
                     'Accept': 'application/json'
                 }
             });
+
+            // console.log('response', JSON.stringify(response.data));
+
+
             const parsedData = this.parseExtractData(response.data);
 
             // console.log('parsedData', parsedData);
-            
+
             // Update job with result
             await this.updateJobStatus(jobData.id, 'completed', parsedData);
             // Update ExtractedData
@@ -361,7 +387,7 @@ export default class DocumentProcessService {
             if (error instanceof Error && error.stack) {
                 logger.error(error.stack);
             }
-            
+
             throw error;
         }
     }
@@ -404,7 +430,7 @@ export default class DocumentProcessService {
 
             if (!userData || !userData.students || userData.students.length === 0) {
                 console.error(`User not found with ID: ${jobData.userId}`);
-                throw new Error(DocumentProcessStatus.USER_NOT_FOUND); 
+                throw new Error(DocumentProcessStatus.USER_NOT_FOUND);
             }
 
             const fullName = userData.students?.[0]?.registration?.fullName;
@@ -446,7 +472,7 @@ export default class DocumentProcessService {
                 data: {
                     status: 'completed'
                 }
-            }); 
+            });
 
             return response.data;
         } catch (error) {
@@ -459,7 +485,7 @@ export default class DocumentProcessService {
             if (error instanceof Error && error.stack) {
                 logger.error(error.stack);
             }
-            
+
             throw error;
         }
     }
@@ -475,7 +501,7 @@ export default class DocumentProcessService {
     private async updateJobStatus(jobId: string, status: DocumentProcessJob<any>['status'], result?: any, error?: string): Promise<void> {
         try {
             console.log(`Updating job status for ${jobId} to ${status}`);
-            
+
             // Update job status in Redis
             await this.documentJobService.updateJobStatus(jobId, status, result, error);
 
@@ -540,63 +566,170 @@ export default class DocumentProcessService {
             throw new BadRequest('INVALID_FILE', 'Invalid file format', 'The provided file is missing required properties');
         }
 
-        // Store the file in the file system
-        const fileSaved = await this.assetFs.uploadFile(file, userId, {
-            applicationId,
-            type,
-            ...metadata
+        // Use a transaction to ensure data consistency while checking and creating/updating
+        return await prisma.$transaction(async (tx) => {
+            let document;
+            let applicationDocument;
+
+            // For transcript type, we update any existing document
+            // For certificate type, we always create a new document
+            if (type === 'transcript') {
+                // Check if a transcript document already exists for this application
+                const existingApplicationDocument = await tx.applicationDocument.findFirst({
+                    where: {
+                        applicationId,
+                        type: 'transcript',
+                    },
+                    include: {
+                        document: true
+                    }
+                });
+
+                logger.info(`Checking for existing transcript for application ${applicationId}: ${existingApplicationDocument ? 'Found' : 'Not found'}`);
+                
+                // Store the file in the file system
+                const fileSaved = await this.assetFs.uploadFile(file, userId, {
+                    applicationId,
+                    type,
+                    ...metadata
+                });
+
+                if (!fileSaved) {
+                    logger.error(`File upload failed for user ${userId}, application ${applicationId}, type ${type}`);
+                    throw new BadRequest('FILE_UPLOAD_FAILED', 'Failed to upload file', 'Có lỗi xảy ra khi tải lên file');
+                }
+
+                logger.info(`Transcript file saved: ${fileSaved.fileName}, Size: ${fileSaved.fileSize}`);
+
+                if (existingApplicationDocument) {
+                    // Update existing transcript
+                    logger.info(`Updating existing transcript for application ${applicationId}, doc ID: ${existingApplicationDocument.documentId}`);
+                    
+                    // Update the document
+                    document = await tx.document.update({
+                        where: { id: existingApplicationDocument.documentId },
+                        data: {
+                            name: fileSaved.fileName,
+                            mimeType: fileSaved.mimetype,
+                            url: fileSaved.url,
+                            filePath: fileSaved.storagePath,
+                            fileSize: fileSaved.fileSize,
+                            uploadedAt: new Date(),
+                        }
+                    });
+                    
+                    logger.info(`Updated transcript document with ID ${document.id}`);
+                    
+                    // Update the application document status
+                    applicationDocument = await tx.applicationDocument.update({
+                        where: { id: existingApplicationDocument.id },
+                        data: {
+                            status: 'pending',
+                        }
+                    });
+                    
+                    logger.info(`Updated application document with ID ${applicationDocument.id} to status 'pending'`);
+                    
+                    // Delete any existing extracted data
+                    const deletedData = await tx.extractedData.deleteMany({
+                        where: {
+                            documentId: document.id
+                        }
+                    });
+                    
+                    logger.info(`Deleted ${deletedData.count} extracted data records for transcript ${document.id}`);
+                } else {
+                    // Create new transcript document
+                    logger.info(`Creating new transcript document for application ${applicationId}`);
+                    
+                    // Create document in the database
+                    document = await tx.document.create({
+                        data: {
+                            name: fileSaved.fileName,
+                            type,
+                            mimeType: fileSaved.mimetype,
+                            url: fileSaved.url,
+                            filePath: fileSaved.storagePath,
+                            fileSize: fileSaved.fileSize,
+                            uploadedAt: new Date(),
+                        }
+                    });
+                    
+                    logger.info(`Created new transcript document with ID ${document.id}`);
+                    
+                    // Create application document relationship
+                    applicationDocument = await tx.applicationDocument.create({
+                        data: {
+                            applicationId,
+                            status: 'pending',
+                            type,
+                            documentId: document.id
+                        }
+                    });
+                    
+                    logger.info(`Created new transcript application document with ID ${applicationDocument.id}`);
+                }
+
+                // Check file type and process
+                if (file.mimetype !== 'application/pdf') {
+                    throw new BadRequest('INVALID_FILE_TYPE', 'Invalid file type', 'Only PDF files are accepted for transcript processing');
+                }
+                return await this.processTranscript(applicationDocument.id, document.id, userId);
+                
+            } else if (type === 'certificate') {
+                // For certificates, we always create a new document (multiple certificates allowed)
+                logger.info(`Creating new certificate document for application ${applicationId}`);
+                
+                // Store the file in the file system
+                const fileSaved = await this.assetFs.uploadFile(file, userId, {
+                    applicationId,
+                    type,
+                    ...metadata
+                });
+
+                if (!fileSaved) {
+                    logger.error(`File upload failed for user ${userId}, application ${applicationId}, type ${type}`);
+                    throw new BadRequest('FILE_UPLOAD_FAILED', 'Failed to upload file', 'Có lỗi xảy ra khi tải lên file');
+                }
+
+                logger.info(`Certificate file saved: ${fileSaved.fileName}, Size: ${fileSaved.fileSize}`);
+                
+                // Create document in the database
+                document = await tx.document.create({
+                    data: {
+                        name: fileSaved.fileName,
+                        type,
+                        mimeType: fileSaved.mimetype,
+                        url: fileSaved.url,
+                        filePath: fileSaved.storagePath,
+                        fileSize: fileSaved.fileSize,
+                        uploadedAt: new Date(),
+                    }
+                });
+                
+                logger.info(`Created new certificate document with ID ${document.id}`);
+                
+                // Create application document relationship
+                applicationDocument = await tx.applicationDocument.create({
+                    data: {
+                        applicationId,
+                        status: 'pending',
+                        type,
+                        documentId: document.id
+                    }
+                });
+                
+                logger.info(`Created new certificate application document with ID ${applicationDocument.id}`);
+
+                // Check file type and process
+                if (!file.mimetype.startsWith('image/')) {
+                    throw new BadRequest('INVALID_FILE_TYPE', 'Invalid file type', 'Only image files are accepted for certificate processing');
+                }
+                return await this.processCertificate(applicationDocument.id, document.id, userId, tx);
+            }
+            
+            return { id: '', jobId: '', status: '' };
         });
-
-        if (!fileSaved) {
-            throw new BadRequest('FILE_UPLOAD_FAILED', 'Failed to upload file', 'Có lỗi xảy ra khi tải lên file');
-        }
-
-        console.log('File saved', fileSaved);
-
-        // create document in the database
-        const document = await prisma.document.create({
-            data: {
-                name: fileSaved.fileName,
-                type,
-                mimeType: fileSaved.mimetype,
-                url: fileSaved.url,
-                filePath: fileSaved.storagePath,
-                fileSize: fileSaved.fileSize,
-                uploadedAt: new Date(),
-            }
-        });
-
-        const applicationDocument = await prisma.applicationDocument.create({
-            data: {
-                applicationId,
-                status: 'pending',
-                type,
-                documentId: document.id
-            }
-        });
-
-        if (!fileSaved) {
-            throw new InternalServerError(
-                'FILE_UPLOAD_FAILED',
-                'Failed to upload file',
-                'Có lỗi xảy ra khi tải lên file'
-            );
-        }
-
-        // Determine which processing method to use based on document type
-        let result: { id: string, jobId?: string, status: string };
-        if (type === 'transcript') {
-            if (file.mimetype !== 'application/pdf') {
-                throw new BadRequest('INVALID_FILE_TYPE', 'Invalid file type', 'Only PDF files are accepted for transcript processing');
-            }
-            return await this.processTranscript(applicationId, document.id, userId);
-        } else if (type === 'certificate') {
-            if (!file.mimetype.startsWith('image/')) {
-                throw new BadRequest('INVALID_FILE_TYPE', 'Invalid file type', 'Only image files are accepted for certificate processing');
-            }
-            return await this.processCertificate(applicationId, document.id, userId);
-        }
-        return { id: '', jobId: '', status: '' };
     }
 
     /**
@@ -605,22 +738,67 @@ export default class DocumentProcessService {
      * @param userId - The ID of the user requesting the documents
      * @returns Promise containing array of documents
      */
-    public async getApplicationDocuments(applicationId: string, userId: string | number): Promise<DocumentProcessJob<any>[]> {
-        // In a real implementation, this would query a database
-        // For now, we'll filter the in-memory map
-        const documents: DocumentProcessJob<any>[] = [];
+    public async getApplicationDocuments(applicationId: string, userId: number | string, filter?: PrismaPaginationOptions<'applicationDocument'>) {
+        try {
+            const applicationIdInt = parseInt(applicationId);
+            if (isNaN(applicationIdInt)) {
+                throw new BadRequest('INVALID_APPLICATION_ID', 'Invalid application ID', 'Application ID is not a number');
+            }
 
-        // Check in-memory jobs
-        // for (const job of this.documentJobs.values()) {
-        //     if (job.applicationId === applicationId && job.userId === userId) {
-        //         documents.push(job);
-        //     }
-        // }
+            const userIdInt = parseInt(String(userId));
+            if (isNaN(userIdInt)) {
+                throw new BadRequest('INVALID_USER_ID', 'Invalid user ID', 'User ID is not a number');
+            }
 
-        // In a real implementation, you would also check the database
-        // and possibly merge results from the queue
+            // Use transaction to ensure data consistency
+            return await prisma.$transaction(async (tx) => {
+                // Get the application with document count
+                const application = await tx.application.findUnique({
+                    where: {
+                        id: applicationIdInt,
+                        student: {
+                            userId: userIdInt
+                        }
+                    },
+                    select: {
+                        ApplicationDocuments: {
+                            ...filter,
+                            include: {
+                                document: true
+                            }
+                        }
+                    }
+                });
 
-        return documents;
+                if (!application) {
+                    throw new BadRequest('APPLICATION_NOT_FOUND', 'Application not found', 'Application not found');
+                }
+
+                // Get total count using the same filter but without pagination
+                const totalCount = await tx.applicationDocument.count({
+                    where: {
+                        applicationId: applicationIdInt,
+                        application: {
+                            student: {
+                                userId: userIdInt
+                            }
+                        },
+                        ...filter?.where
+                    }
+                });
+
+                // Return both documents and total count
+                return {
+                    documents: application.ApplicationDocuments,
+                    total: totalCount,
+                    pageSize: filter?.take || application.ApplicationDocuments.length,
+                    page: filter?.skip !== undefined && filter.take ? Math.floor(filter.skip / filter.take) + 1 : 1
+                };
+            });
+        } catch (error) {
+            logger.error(`Error getting application documents for application ${applicationId} and user ${userId}:`, error);
+            throw error;
+        }
     }
 
     /**
@@ -642,7 +820,7 @@ export default class DocumentProcessService {
         }
 
         if (job.status !== DocumentProcessStatus.COMPLETED) {
-            throw new BadRequest('PROCESSING_INCOMPLETE', `Document processing is ${job.status}`,  `Tài liệu đang được xử lý, vui lòng chờ khiến tải lại trang`);
+            throw new BadRequest('PROCESSING_INCOMPLETE', `Document processing is ${job.status}`, `Tài liệu đang được xử lý, vui lòng chờ khiến tải lại trang`);
         }
 
         if (!job.result) {
@@ -676,7 +854,7 @@ export default class DocumentProcessService {
         } else if (type === 'certificate') {
             return await this.verifyCertificate(extractedDataId, isVerified, userId);
         }
-        throw new BadRequest('INVALID_DOCUMENT_TYPE', 'Invalid document type', 'Invalid document type');    
+        throw new BadRequest('INVALID_DOCUMENT_TYPE', 'Invalid document type', 'Invalid document type');
     }
 
     public async verifyTranscript(extractedDataId: string, isVerified: boolean, userId: string | number): Promise<DocumentProcessJob<any>> {
@@ -689,9 +867,9 @@ export default class DocumentProcessService {
             // if (job && typeof job.result === 'object') { // If from queue and result is object, stringify for consistency if needed later
             //     job.result = JSON.stringify(job.result);
             // }
-             throw new BadRequest('DOCUMENT_NOT_FOUND', 'Document not found', `Document with ID ${extractedDataId} not found`);
+            throw new BadRequest('DOCUMENT_NOT_FOUND', 'Document not found', `Document with ID ${extractedDataId} not found`);
         }
-        
+
         if (job.status !== DocumentProcessStatus.COMPLETED) {
             throw new BadRequest('PROCESSING_INCOMPLETE', 'Processing incomplete', `Document processing is ${job.status}`);
         }
@@ -704,7 +882,7 @@ export default class DocumentProcessService {
                     where: { id: job.applicationDocumentId },
                     data: {
                         status: ApplicationFailedReason.DOCUMENT_PROCESSING_FAILED_INVALID_DATA,
-                        rejectionReason: `${ApplicationFailedReasonMessage.DOCUMENT_PROCESSING_FAILED_INVALID_DATA} (Missing or invalid format extracted data string)`, 
+                        rejectionReason: `${ApplicationFailedReasonMessage.DOCUMENT_PROCESSING_FAILED_INVALID_DATA} (Missing or invalid format extracted data string)`,
                         isEligible: false, verificationDate: new Date(),
                     },
                 });
@@ -720,11 +898,11 @@ export default class DocumentProcessService {
         } catch (e: any) {
             logger.error(`Failed to parse job.result for verification of job ${job.id}: ${job.result}`, e);
             if (job.applicationDocumentId) {
-                 await prisma.applicationDocument.update({
+                await prisma.applicationDocument.update({
                     where: { id: job.applicationDocumentId },
                     data: {
                         status: ApplicationFailedReason.DOCUMENT_PROCESSING_FAILED_INVALID_DATA,
-                        rejectionReason: `${ApplicationFailedReasonMessage.DOCUMENT_PROCESSING_FAILED_INVALID_DATA} (Error parsing extracted data: ${e.message})`, 
+                        rejectionReason: `${ApplicationFailedReasonMessage.DOCUMENT_PROCESSING_FAILED_INVALID_DATA} (Error parsing extracted data: ${e.message})`,
                         isEligible: false, verificationDate: new Date(),
                     },
                 });
@@ -737,12 +915,12 @@ export default class DocumentProcessService {
 
         if (typeof parsedResultData !== 'object' || parsedResultData === null || Object.keys(parsedResultData).length === 0) {
             logger.error(`Job ${job.id} has empty parsed result data after JSON.parse.`);
-             if (job.applicationDocumentId) {
+            if (job.applicationDocumentId) {
                 await prisma.applicationDocument.update({
                     where: { id: job.applicationDocumentId },
                     data: {
                         status: ApplicationFailedReason.DOCUMENT_PROCESSING_FAILED_INVALID_DATA,
-                        rejectionReason: `${ApplicationFailedReasonMessage.DOCUMENT_PROCESSING_FAILED_INVALID_DATA} (Empty extracted data after parsing)`, 
+                        rejectionReason: `${ApplicationFailedReasonMessage.DOCUMENT_PROCESSING_FAILED_INVALID_DATA} (Empty extracted data after parsing)`,
                         isEligible: false, verificationDate: new Date(),
                     },
                 });
@@ -826,9 +1004,9 @@ export default class DocumentProcessService {
         if (!jobToVerify) {
             // logger.warn(`Job ${extractedDataId} not found in DocumentJobService, attempting to fetch from queue.`);
             // jobToVerify = await this.getJobById(extractedDataId);
-             throw new BadRequest('DOCUMENT_NOT_FOUND', 'Document not found', `Document with ID ${extractedDataId} not found`);
+            throw new BadRequest('DOCUMENT_NOT_FOUND', 'Document not found', `Document with ID ${extractedDataId} not found`);
         }
-        
+
         if (jobToVerify.status !== DocumentProcessStatus.COMPLETED) {
             throw new BadRequest('PROCESSING_INCOMPLETE', 'Processing incomplete', `Document processing is ${jobToVerify.status}`);
         }
@@ -841,7 +1019,7 @@ export default class DocumentProcessService {
                 logger.error(`Failed to parse certificate job result for ${jobToVerify.id}: ${jobToVerify.result}`, e.message);
                 throw new InternalServerError('RESULT_PARSE_ERROR', 'Failed to parse certificate data.', e.message);
             }
-        } else if (jobToVerify.result && typeof jobToVerify.result === 'object'){
+        } else if (jobToVerify.result && typeof jobToVerify.result === 'object') {
             // This case should ideally not happen if DocumentJobService.getJob always returns string result
             parsedCertificateResult = jobToVerify.result as any;
         }
@@ -869,7 +1047,7 @@ export default class DocumentProcessService {
                 },
             });
         }
-        
+
         const updatedJobData = { ...jobToVerify, updatedAt: new Date() };
         await this.documentJobService.updateJob(extractedDataId, updatedJobData);
 
@@ -880,30 +1058,30 @@ export default class DocumentProcessService {
         const result: Record<string, TranscriptData> = {};
 
         for (const [className, data] of Object.entries(raw)) {
-            if (!data.Tên || !data.Điểm) {
+            if (!data.Tên || !data['Điểm']) {
                 throw new Error(`Invalid data structure for ${className}`);
             }
 
             const processedData: TranscriptData = {
                 ten: data.Tên,
-                monHoc: data.Điểm.map(m => ({
-                    mon: m.Môn,
-                    muc: m.Mức,
-                    diem: m.Điểm === 'unk' ? null : Number(m.Điểm)
+                monHoc: data['Điểm'].map(m => ({
+                    mon: m['Môn'],
+                    muc: m['Mức'],
+                    diem: m['Điểm'] === 'unk' ? null : Number(m['Điểm'])
                 })),
             };
 
             if (data['Phẩm chất']) {
                 processedData.phamChat = Object.entries(data['Phẩm chất']).reduce((acc, [k, v]) => ({
                     ...acc,
-                    [VietnameseAccentConverter.toNonAccentVietnameseWithoutSpace(k)]: v
+                    [VietnameseAccentConverter.toNonAccentVietnameseWithoutSpace(k)]: this.uniformPhamChat(v)
                 }), {});
             }
 
             if (data['Năng lực']) {
                 processedData.nangLuc = Object.entries(data['Năng lực']).reduce((acc, [k, v]) => ({
                     ...acc,
-                    [VietnameseAccentConverter.toNonAccentVietnameseWithoutSpace(k)]: v
+                    [VietnameseAccentConverter.toNonAccentVietnameseWithoutSpace(k)]: this.uniformPhamChat(v)
                 }), {});
             }
 
@@ -911,6 +1089,15 @@ export default class DocumentProcessService {
         }
 
         return result;
+    }
+
+    public uniformPhamChat(phamChat: string): string {
+        switch (phamChat.toLowerCase()) {
+            case 'tốt':
+                return 'T';
+            default:
+                return phamChat;
+        }
     }
 
     private normalizeKey(key: string): string {

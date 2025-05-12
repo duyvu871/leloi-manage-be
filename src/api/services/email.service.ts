@@ -1,107 +1,54 @@
-import nodemailer from 'nodemailer';
 import logger from 'util/logger';
-import emailConfig from 'server/configs/email.config';
+import EmailQueueService from './email-queue.service';
+import { EmailJobData } from './email-queue.service';
 
-interface EmailOptions {
-    to: string;
-    subject: string;
-    text: string;
-    html?: string;
-}
-
-export default class EmailService {
-    private transporter: nodemailer.Transporter;
+/**
+ * Service responsible for initiating email sending by queueing them.
+ * The actual email dispatch is handled by EmailWorker.
+ */
+class EmailService {
+    private emailQueueService: EmailQueueService;
 
     constructor() {
-        this.transporter = nodemailer.createTransport({
-            service: emailConfig.service,
-            auth: emailConfig.auth
-        });
+        this.emailQueueService = new EmailQueueService();
+        logger.info('EmailService initialized, using EmailQueueService for email dispatch.');
     }
 
     /**
-     * Send an email
-     * @param options - Email options
-     * @returns Promise<boolean> - Whether the email was sent successfully
+     * Enqueues an email to be sent.
+     * @param options - EmailJobData containing to, subject, text, and optionally html.
+     * @returns Promise<boolean> - True if the email was successfully enqueued, false otherwise.
      */
-    public async sendEmail(options: EmailOptions): Promise<boolean> {
+    async sendEmail(options: EmailJobData): Promise<boolean> {
         try {
-            const mailOptions = {
-                from: `"${emailConfig.from.name}" <${emailConfig.from.address}>`,
-                to: options.to,
-                subject: options.subject,
-                text: options.text,
-                html: options.html
-            };
-
-            const info = await this.transporter.sendMail(mailOptions);
-            logger.info(`Email sent: ${info.messageId}`);
-            return true;
+            const enqueueResult = await this.emailQueueService.enqueueEmail(options);
+            if (enqueueResult.success) {
+                logger.info(`Email for ${options.to} successfully enqueued. Job ID: ${enqueueResult.details?.jobId}`);
+                return true;
+            } else {
+                logger.error(`Failed to enqueue email for ${options.to}: ${enqueueResult.error}`);
+                return false;
+            }
         } catch (error) {
-            logger.error('Error sending email:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error during enqueueing';
+            logger.error(`Error in sendEmail method for ${options.to}: ${errorMessage}`, { error });
             return false;
         }
     }
 
     /**
-     * Send document processed notification
-     * @param to - Recipient email
-     * @param studentName - Student's name
-     * @returns Promise<boolean>
+     * Gracefully closes the connection to the email queue service.
+     * This might be called during application shutdown.
      */
-    public async sendDocumentProcessedNotification(to: string, studentName: string): Promise<boolean> {
-        const { subject, template } = emailConfig.templates.documentProcessed;
-        return this.sendEmail({
-            to,
-            subject,
-            text: `Hồ sơ của học sinh ${studentName} đã được xử lý thành công.`
-        });
+    async closeQueue(): Promise<void> {
+        try {
+            await this.emailQueueService.close();
+            logger.info('EmailQueueService connection closed by EmailService.');
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error during queue close';
+            logger.error('Error closing EmailQueueService from EmailService:', { error: errorMessage });
+        }
     }
+}
 
-    /**
-     * Send document processing error notification
-     * @param to - Recipient email
-     * @param jobId - Job ID
-     * @param error - Error message
-     * @returns Promise<boolean>
-     */
-    public async sendDocumentErrorNotification(to: string, jobId: string, error: string): Promise<boolean> {
-        const { subject, template } = emailConfig.templates.documentFailed;
-        return this.sendEmail({
-            to,
-            subject,
-            text: `Hồ sơ ${jobId} xử lý thất bại: ${error}`
-        });
-    }
-
-    /**
-     * Send certificate verification notification
-     * @param to - Recipient email
-     * @param studentName - Student's name
-     * @returns Promise<boolean>
-     */
-    public async sendCertificateVerifiedNotification(to: string, studentName: string): Promise<boolean> {
-        const { subject, template } = emailConfig.templates.certificateVerified;
-        return this.sendEmail({
-            to,
-            subject,
-            text: `Chứng chỉ của học sinh ${studentName} đã được xác thực thành công.`
-        });
-    }
-
-    /**
-     * Send certificate verification error notification
-     * @param to - Recipient email
-     * @param jobId - Job ID
-     * @param error - Error message
-     * @returns Promise<boolean>
-     */
-    public async sendCertificateErrorNotification(to: string, jobId: string, error: string): Promise<boolean> {
-        const { subject, template } = emailConfig.templates.certificateFailed;
-        return this.sendEmail({
-            to,
-            subject,
-            text: `Chứng chỉ ${jobId} xác thực thất bại: ${error}`
-        });
-    }
-} 
+export default EmailService; 

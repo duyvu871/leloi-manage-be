@@ -76,7 +76,7 @@ export class EmailNotificationService implements NotificationService {
             // For other notifications, use the default template
             const emailContent = EmailTemplateService.fromNotificationPayload(payload);
 
-            // Send the email
+            // Send the email by queueing it
             const success = await this.emailService.sendEmail({
                 to: recipientEmail,
                 subject: emailContent.subject,

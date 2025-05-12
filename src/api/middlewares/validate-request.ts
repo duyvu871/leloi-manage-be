@@ -22,13 +22,20 @@ const validate = (type: ValidateType, ...schemas: ZodType<any>[]) => {
 					const errorMessages = result.error.errors.map((err) => {
 						const path = err.path.join('.');
 						const message = err.message;
-						return `${path} (${type}): ${message}`;
+						// 
+						return {
+							message: message,
+							path: path,
+							type: type
+						};
 					});
+
+					console.log('errorMessages', errorMessages.map((err) => `${err.path} (${err.type}): ${err.message}`));
 
 					throw new BadRequest(
 						'VALIDATION_ERROR',
-						'Invalid request data',
-						errorMessages.join(', ')
+						errorMessages.map((err) => err.message).join(', '),
+						errorMessages.map((err) => err.message).join(', ')
 					);
 				}
 

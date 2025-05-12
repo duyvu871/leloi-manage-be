@@ -1,13 +1,15 @@
-import { PrismaClient } from '@prisma/client';
-import { DraftFormData } from 'server/common/interfaces/registration.interface';
+import { Prisma, PrismaClient } from '@prisma/client';
+// import { DraftFormData } from 'server/common/interfaces/registration.interface';
 import prisma from 'repository/prisma';
 import { Transaction } from 'server/@types/prisma';
 import e from 'express';
-import { RegistrationResponseDto } from 'server/common/dto/registration.dto';
+import { GradeDto, RegistrationResponseDto } from 'server/common/dto/registration.dto';
 import Forbidden from 'server/responses/client-errors/forbidden';
+import { RegistrationApiData } from 'validations/registration.validation';
+import DatabaseSeeder from 'server/loaders/database-seeder.loader';
 
 export class RegistrationService {
-    async saveRegistrationDraft(userId: number, draftData: DraftFormData) {
+    async saveRegistrationDraft(userId: number, draftData: RegistrationApiData) {
         return await prisma.$transaction(async (tx) => {
             // 1. Save student information
             const student = await this.saveStudentInfo(tx, userId, draftData);
@@ -15,7 +17,12 @@ export class RegistrationService {
             // 2. Save parent information
             await this.saveParentInfo(tx, userId, draftData);
 
-            // 3. Save commitment if provided
+            // 3. Save academic record if provided
+            if (draftData.academicRecords && draftData.academicRecords.grades.length > 0) {
+                await this.saveAcademicRecord(tx, student.id, draftData.academicRecords);
+            }
+
+            // 4. Save commitment if provided
             if (draftData.commitment) {
                 await this.saveCommitment(tx, student.id, draftData.commitment);
             }
@@ -24,6 +31,8 @@ export class RegistrationService {
             if (draftData.competitionResults && draftData.competitionResults.length > 0) {
                 await this.saveCompetitionResults(tx, student.id, draftData.competitionResults);
             }
+
+            
 
             // // 5. Create an application record
             // const application = await tx.application.create({
@@ -46,8 +55,173 @@ export class RegistrationService {
         });
     }
 
-    private async saveStudentInfo(tx: Transaction, userId: number, draftData: DraftFormData) {
+    private async saveAcademicRecord(tx: Transaction, studentId: number, academicRecords: NonNullable<RegistrationApiData['academicRecords']>) {
+        const { grades } = academicRecords;
+
+        // Check if academic record already exists
+        const existingAcademicRecord = await tx.academicRecord.findFirst({
+            where: { studentId }
+        });
+
+        const allSubjects = await tx.subject.findMany();
+
+        console.log('allSubjects', allSubjects);
+        
+
+        if (existingAcademicRecord) {
+
+            const newScores = existingAcademicRecord.scores;
+
+            console.log('newScores', newScores);
+            
+            // Update existing academic record
+            const updateAcademicRecord = await tx.academicRecord.update({
+                where: {
+                    id: existingAcademicRecord.id
+                },
+                data: {
+                    semester: 0,
+                    schoolYear: '',
+                    source: 'manual',
+                    verificationStatus: 'pending',
+                    scores: academicRecords.grades,
+                    verifiedAt: null,
+                    verifiedBy: null,
+                    notes: null
+                }
+            });
+
+            // // Lấy danh sách subject grades hiện tại
+            // const existingSubjectGrades = await tx.subjectGrade.findMany({
+            //     where: {
+            //         academicRecordId: existingAcademicRecord.id
+            //     },
+            //     select: {
+            //         id: true,
+            //         subjectId: true,
+            //         grade: true
+            //     }
+            // });
+
+            // const flatSubjects = academicRecords.grades.map(grade => ({
+            //     grade: grade.grade,
+            //     subjects: Object.entries(grade).filter(([key]) => key !== 'grade')
+            // }));
+
+            // const updateOperations: Promise<any>[] = [];
+
+            // for (const subject of flatSubjects) {
+            //     for (const [subjectSlug, score] of subject.subjects) {
+            //         const subjectId = allSubjects.find(s => s.name === subjectSlug)?.id;
+            //         if (!subjectId) continue;
+
+            //         // Tìm subject grade hiện tại nếu có
+            //         const existingGrade = existingSubjectGrades.find(
+            //             sg => sg.subjectId === subjectId && sg.grade === subject.grade
+            //         );
+
+            //         if (existingGrade) {
+            //             // Update nếu đã tồn tại
+            //             updateOperations.push(
+            //                 tx.subjectGrade.update({
+            //                     where: { id: existingGrade.id },
+            //                     data: { score }
+            //                 })
+            //             );
+            //         } else {
+            //             // Create mới nếu chưa tồn tại
+            //             updateOperations.push(
+            //                 tx.subjectGrade.create({
+            //                     data: {
+            //                         academicRecordId: updateAcademicRecord.id,
+            //                         subjectId,
+            //                         grade: subject.grade,
+            //                         score
+            //                     }
+            //                 })
+            //             );
+            //         }
+            //     }
+            // }
+
+            // // Thực hiện tất cả các operations
+            // await Promise.all(updateOperations);
+        } else {
+            // create new academic record
+            const newAcademicRecord = await tx.academicRecord.create({
+                data: {
+                    studentId,
+                    semester: 0,
+                    schoolYear: '',
+                    source: 'manual',
+                    verificationStatus: 'pending',
+                    scores: academicRecords.grades,
+                    verifiedAt: null,
+                    verifiedBy: null,
+                    notes: null
+                }
+            });
+
+            // const flatSubjects = academicRecords.grades.map(grade => ({
+            //     grade: grade.grade,
+            //     subjects: Object.entries(grade).filter(([key]) => key !== 'grade')
+            // }));
+
+            // const createSubjects: any[] = [];
+
+            // for (const subject of flatSubjects) {
+            //     createSubjects.push(tx.subjectGrade.createMany({
+            //         data: subject.subjects.map(([subjectSlug, grade]) => ({
+            //             academicRecordId: newAcademicRecord.id,
+            //             subjectId: allSubjects.find(subject => subject.code === subjectSlug)?.id as number,
+            //             grade,
+            //             score: 0
+            //         }))
+            //     }));
+            // }
+
+            // await Promise.all(createSubjects);
+        }
+    }
+
+    private async saveStudentInfo(tx: Transaction, userId: number, draftData: RegistrationApiData) {
         const { studentInfo, residenceInfo } = draftData;
+
+        const student = await tx.student.findFirst({
+            where: {
+                user: {
+                    id: userId
+                }
+            }
+        });     
+
+        console.log('student', student);
+        
+
+        if (student) {
+            return await tx.student.update({
+                where: {
+                    id: student.id
+                },
+                data: {
+                    registration: {
+                        update: {   
+                            fullName: studentInfo.fullName || '',
+                            dateOfBirth: studentInfo.dateOfBirth || new Date(),
+                            gender: studentInfo.gender || 'male',
+                            educationDepartment: studentInfo.educationDepartment || '',
+                            primarySchool: studentInfo.primarySchool || '',
+                            grade: studentInfo.grade || '',
+                            placeOfBirth: studentInfo.placeOfBirth || '',
+                            ethnicity: studentInfo.ethnicity || '',
+                            permanentAddress: residenceInfo.permanentAddress || '',
+                            temporaryAddress: residenceInfo.temporaryAddress || '',
+                            currentAddress: residenceInfo.currentAddress || '',
+                        }
+                    }
+                }
+            });
+        }
 
         return await tx.student.create({
             data: {
@@ -74,7 +248,7 @@ export class RegistrationService {
         });
     }
 
-    private async saveParentInfo(tx: Transaction, userId: number, draftData: DraftFormData) {
+    private async saveParentInfo(tx: Transaction, userId: number, draftData: RegistrationApiData) {
         const { parentInfo } = draftData;
 
         // Check if parent info already exists
@@ -83,6 +257,9 @@ export class RegistrationService {
         });
 
         if (existingParentInfo) {
+
+
+
             return await tx.parentInfo.update({
                 where: { userId },
                 data: {
@@ -135,7 +312,7 @@ export class RegistrationService {
         }
     }
 
-    private async saveCommitment(tx: Transaction, studentId: number, commitmentData: NonNullable<DraftFormData['commitment']>) {
+    private async saveCommitment(tx: Transaction, studentId: number, commitmentData: NonNullable<RegistrationApiData['commitment']>) {
         // Check if commitment already exists for this student
         const existingCommitment = await tx.commitment.findUnique({
             where: { studentId }
@@ -164,7 +341,7 @@ export class RegistrationService {
         }
     }
 
-    private async saveCompetitionResults(tx: Transaction, studentId: number, competitionResults: NonNullable<DraftFormData['competitionResults']>) {
+    private async saveCompetitionResults(tx: Transaction, studentId: number, competitionResults: NonNullable<RegistrationApiData['competitionResults']>) {
         // First, delete any existing bonus points for this student
         await tx.bonusPoint.deleteMany({
             where: { studentId }
@@ -209,7 +386,7 @@ export class RegistrationService {
         }
     }
 
-    async getRegistrationData(userId: number, studentId): Promise<RegistrationResponseDto> {
+    async getRegistrationData(userId: number, studentId: number): Promise<RegistrationResponseDto> {
 
         return await prisma.$transaction(async (tx) => {
             const parentInfo = await tx.parentInfo.findFirst({
@@ -227,6 +404,15 @@ export class RegistrationService {
                     Commitment: true,
                     bonusPoints: true,
                     PriorityPoint: true,
+                    academicRecords: {
+                        include: {
+                            grades: {
+                                include: {
+                                    subject: true
+                                }   
+                            }
+                        }
+                    },
                     application: {
                         include: {
                             ApplicationDocuments: {
@@ -243,6 +429,8 @@ export class RegistrationService {
             if (!student) {
                 throw new Forbidden('student_not_found', 'Student not found', 'Không tìm thấy học sinh');
             }
+
+            // transform academic records
 
             return {
                 student: {
@@ -263,7 +451,31 @@ export class RegistrationService {
                     updatedAt: student.updatedAt,
                     // ...student.registration,
                 },
-                parentInfo,
+                parentInfo: {
+                    id: parentInfo.id,
+                    userId: parentInfo.userId,
+                    fatherName: parentInfo.fatherName || '',
+                    fatherBirthYear: parentInfo.fatherBirthYear || 0,
+                    fatherPhone: parentInfo.fatherPhone || '',
+                    fatherIdCard: parentInfo.fatherIdCard || '',
+                    fatherOccupation: parentInfo.fatherOccupation || '',
+                    fatherWorkplace: parentInfo.fatherWorkplace || '',
+                    motherName: parentInfo.motherName || '',
+                    motherBirthYear: parentInfo.motherBirthYear || 0,
+                    motherPhone: parentInfo.motherPhone || '',
+                    motherIdCard: parentInfo.motherIdCard || '',
+                    motherOccupation: parentInfo.motherOccupation || '',
+                    motherWorkplace: parentInfo.motherWorkplace || '',
+                    guardianName: parentInfo.guardianName || '',
+                    guardianBirthYear: parentInfo.guardianBirthYear || 0,
+                    guardianPhone: parentInfo.guardianPhone || '',
+                    guardianIdCard: parentInfo.guardianIdCard || '',
+                    guardianOccupation: parentInfo.guardianOccupation || '',
+                    guardianWorkplace: parentInfo.guardianWorkplace || '',
+                    guardianRelationship: parentInfo.guardianRelationship || '',
+                    createdAt: parentInfo.createdAt,
+                    updatedAt: parentInfo.updatedAt,
+                },
                 application: student.application,
                 grades: student.grades,
                 priorityPoint: student.PriorityPoint[0],
@@ -275,8 +487,32 @@ export class RegistrationService {
                     year: new Date(point.createdAt).getFullYear(),
                 })),
                 commitment: student.Commitment?.[0],
+                academicRecords: this.transformAcademicRecords(student.academicRecords)
             };
         });
+    }
+
+    transformAcademicRecords(academicRecords: Prisma.AcademicRecordGetPayload<{
+        include: {
+            grades: {
+                include: {
+                    subject: true
+                }
+            }
+        }
+    }>[]) {
+
+        console.log('academicRecords', academicRecords);
+        
+
+        // Transform data về format mong muốn
+        const transformedData = {
+            academicRecords: {
+                grades: academicRecords?.[0]?.scores as unknown as GradeDto[]
+            }
+        };
+    
+        return transformedData;
     }
 }
 
