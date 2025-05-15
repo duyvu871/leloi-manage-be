@@ -2,6 +2,9 @@ import * as dotenv from "dotenv";
 import { resolve, join } from "path";
 import * as process from "process";
 
+console.log('process.env.NODE_ENV', process.env.NODE_ENV);
+
+
 // Skip .env file loading in test environment
 if (process.env.NODE_ENV !== 'test') {
     const ENV_FILE_PATH = join(process.cwd(), process.env.NODE_ENV === "production" ? ".env" : ".env.local");
